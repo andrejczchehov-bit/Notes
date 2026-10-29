@@ -14,9 +14,6 @@
         <action
             android:id="@+id/action_FirstFragment_to_SecondFragment"
             app:destination="@id/SecondFragment" />
-        <action
-            android:id="@+id/action_FirstFragment_to_LabsFragment"
-            app:destination="@id/LabsFragment" />
     </fragment>
     <fragment
         android:id="@+id/SecondFragment"
@@ -27,12 +24,12 @@
             android:name="taskId"
             app:argType="long"
             android:defaultValue="-1L" />
+        <argument
+            android:name="isNewTask"
+            app:argType="boolean"
+            android:defaultValue="false" />
         <action
             android:id="@+id/action_SecondFragment_to_FirstFragment"
             app:destination="@id/FirstFragment" />
     </fragment>
-    <fragment
-        android:id="@+id/LabsFragment"
-        android:name="com.example.mynotes.LabsFragment"
-        android:label="Лабораторные работы" />
 </navigation>
