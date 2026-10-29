@@ -17,11 +17,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     val allTasks: LiveData<List<Task>>
 
     init {
-        // Сначала инициализируем базу данных и репозиторий
         val taskDao = AppDatabase.getDatabase(application).taskDao()
         repository = TaskRepository(taskDao)
 
-        // Только теперь настраиваем switchMap, когда repository уже существует
+        // Вот тут switchMap будет перезапрашивать данные при смене профиля
         allTasks = _currentProfile.switchMap { profile ->
             repository.getTasksByProfile(profile)
         }
@@ -33,8 +32,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun insert(task: Task) = viewModelScope.launch {
-        repository.insert(task)
+    // ВАЖНО: Теперь метод insert сам берет текущий профиль из ViewModel,
+    // а не из интерфейса!
+    fun insert(task: Task) {
+        val profile = _currentProfile.value ?: "Личный"
+        val taskWithProfile = task.copy(profileName = profile)
+        viewModelScope.launch {
+            repository.insert(taskWithProfile)
+        }
     }
 
     fun update(task: Task) = viewModelScope.launch {
