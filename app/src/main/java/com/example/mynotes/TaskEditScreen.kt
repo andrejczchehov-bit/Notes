@@ -19,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -154,17 +155,29 @@ fun TaskEditScreen(
                 FilterChip(
                     selected = priority == 1,
                     onClick = { priority = 1 },
-                    label = { Text("Низкий") }
+                    label = { Text("Низкий") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF4CAF50).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFF4CAF50)
+                    )
                 )
                 FilterChip(
                     selected = priority == 2,
                     onClick = { priority = 2 },
-                    label = { Text("Средний") }
+                    label = { Text("Средний") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFF9800).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFFFF9800)
+                    )
                 )
                 FilterChip(
                     selected = priority == 3,
                     onClick = { priority = 3 },
-                    label = { Text("Высокий") }
+                    label = { Text("Высокий") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFE53935).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFFE53935)
+                    )
                 )
             }
 
@@ -252,7 +265,6 @@ fun TaskEditScreen(
                         }
                     } else {
                         viewModel.insert(task)
-                        // Для новой задачи уведомление запланируется после вставки (в реальной практике через coroutine/ID, здесь по дедлайну)
                         if (finalReminder > 0) {
                             NotificationWorker.schedule(context, task)
                         }

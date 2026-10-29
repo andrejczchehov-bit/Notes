@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -93,17 +94,29 @@ fun PaginatedTaskListScreen(modifier: Modifier = Modifier) {
                 FilterChip(
                     selected = selectedPriority == 3,
                     onClick = { selectedPriority = 3 },
-                    label = { Text("HIGH") }
+                    label = { Text("HIGH") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFE53935).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFFE53935)
+                    )
                 )
                 FilterChip(
                     selected = selectedPriority == 2,
                     onClick = { selectedPriority = 2 },
-                    label = { Text("MEDIUM") }
+                    label = { Text("MEDIUM") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFF9800).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFFFF9800)
+                    )
                 )
                 FilterChip(
                     selected = selectedPriority == 1,
                     onClick = { selectedPriority = 1 },
-                    label = { Text("LOW") }
+                    label = { Text("LOW") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF4CAF50).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFF4CAF50)
+                    )
                 )
             }
 
@@ -147,8 +160,7 @@ fun PaginatedTaskListScreen(modifier: Modifier = Modifier) {
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(36.dp)
-                            )
+                                modifier = Modifier.size(36.dp))
                         } else {
                             Button(
                                 onClick = {

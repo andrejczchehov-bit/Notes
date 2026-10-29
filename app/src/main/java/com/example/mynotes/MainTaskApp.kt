@@ -328,9 +328,33 @@ fun TaskSearchAndListContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChip(selected = selectedPriority == null, onClick = { onPriorityChange(null) }, label = { Text("Все") })
-            FilterChip(selected = selectedPriority == 3, onClick = { onPriorityChange(3) }, label = { Text("Высокий") })
-            FilterChip(selected = selectedPriority == 2, onClick = { onPriorityChange(2) }, label = { Text("Средний") })
-            FilterChip(selected = selectedPriority == 1, onClick = { onPriorityChange(1) }, label = { Text("Низкий") })
+            FilterChip(
+                selected = selectedPriority == 3,
+                onClick = { onPriorityChange(3) },
+                label = { Text("Высокий") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Color(0xFFE53935).copy(alpha = 0.2f),
+                    selectedLabelColor = Color(0xFFE53935)
+                )
+            )
+            FilterChip(
+                selected = selectedPriority == 2,
+                onClick = { onPriorityChange(2) },
+                label = { Text("Средний") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Color(0xFFFF9800).copy(alpha = 0.2f),
+                    selectedLabelColor = Color(0xFFFF9800)
+                )
+            )
+            FilterChip(
+                selected = selectedPriority == 1,
+                onClick = { onPriorityChange(1) },
+                label = { Text("Низкий") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Color(0xFF4CAF50).copy(alpha = 0.2f),
+                    selectedLabelColor = Color(0xFF4CAF50)
+                )
+            )
         }
 
         // Список задач текущего профиля
