@@ -35,8 +35,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     // ВАЖНО: Теперь метод insert сам берет текущий профиль из ViewModel,
     // а не из интерфейса!
     fun insert(task: Task) {
-        val profile = _currentProfile.value ?: "Личный"
-        val taskWithProfile = task.copy(profileName = profile)
+        val currentProfileName = _currentProfile.value ?: "Личный"
+        val taskWithProfile = task.copy(profileName = currentProfileName)
         viewModelScope.launch {
             repository.insert(taskWithProfile)
         }
