@@ -354,8 +354,7 @@ fun MainTaskAppScreen(
                                 description = newDesc,
                                 dueDate = System.currentTimeMillis() + 86400000L,
                                 priority = newPriority,
-                                reminderTime = 0L,
-
+                                reminderTime = 0L
                             )
                             viewModel.insert(task)
                             showQuickAddDialog = false
