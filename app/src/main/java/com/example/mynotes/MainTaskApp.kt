@@ -355,7 +355,7 @@ fun MainTaskAppScreen(
                                 dueDate = System.currentTimeMillis() + 86400000L,
                                 priority = newPriority,
                                 reminderTime = 0L,
-                                profileName = currentProfile
+
                             )
                             viewModel.insert(task)
                             showQuickAddDialog = false
