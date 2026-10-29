@@ -8,6 +8,7 @@
     <string name="remind_label">Напомнить</string>
     <string name="pick_reminder_date">Выбрать дату и время напоминания</string>
     <string name="reminder_not_set">Напоминание не установлено</string>
+    <string name="lab_works">Лабораторные работы</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
 
