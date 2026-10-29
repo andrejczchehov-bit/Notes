@@ -11,5 +11,6 @@ data class Task(
     val dueDate: Long,
     val priority: Int, // 1: Low, 2: Medium, 3: High
     val isCompleted: Boolean = false,
-    val reminderTime: Long = 0L
+    val reminderTime: Long = 0L,
+    val profileName: String = "Личный"
 )

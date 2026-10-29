@@ -5,6 +5,10 @@ import androidx.lifecycle.LiveData
 class TaskRepository(private val taskDao: TaskDao) {
     val allTasks: LiveData<List<Task>> = taskDao.getAllTasks()
 
+    fun getTasksByProfile(profileName: String): LiveData<List<Task>> {
+        return taskDao.getTasksByProfile(profileName)
+    }
+
     suspend fun insert(task: Task) {
         taskDao.insert(task)
     }

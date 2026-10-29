@@ -8,6 +8,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks ORDER BY priority DESC, dueDate ASC")
     fun getAllTasks(): LiveData<List<Task>>
 
+    @Query("SELECT * FROM tasks WHERE profileName = :profileName ORDER BY priority DESC, dueDate ASC")
+    fun getTasksByProfile(profileName: String): LiveData<List<Task>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(task: Task)
 

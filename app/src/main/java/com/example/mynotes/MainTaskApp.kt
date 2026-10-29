@@ -27,11 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Единый продуктовый экран задач (MainTaskAppScreen):
- * - Без лишнего меню в TopAppBar (оставлены счётчик, переключатель темы и профиль)
- * - Локализованные приоритеты («Высокий», «Средний», «Низкий») с фиксированными цветами
- * - Поддержка переключения профилей («Личный», «Рабочий», «Учеба»)
- * - Поиск, пагинация, раскрывающиеся карточки, адаптивность под планшеты
+ * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой изолированных профилей («Личный», «Рабочий», «Учеба»).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +36,7 @@ fun MainTaskAppScreen(
     onNavigateToDetail: (Long) -> Unit
 ) {
     val tasks by viewModel.allTasks.observeAsState(emptyList())
+    val currentProfile by viewModel.currentProfile.observeAsState("Личный")
 
     // Состояния интерфейса
     var query by rememberSaveable { mutableStateOf("") }
@@ -50,7 +47,6 @@ fun MainTaskAppScreen(
     
     // Управление профилями (Личный, Рабочий, Учеба)
     val profiles = listOf("Личный", "Рабочий", "Учеба")
-    var currentProfile by rememberSaveable { mutableStateOf("Личный") }
 
     // Пагинация списка
     var displayLimit by rememberSaveable { mutableStateOf(20) }
@@ -88,7 +84,7 @@ fun MainTaskAppScreen(
             topBar = {
                 TopAppBar(
                     title = {
-                        // Счётчик: Мои задачи: N (с указанием текущего профиля)
+                        // Счётчик: Мои задачи: N (для текущего профиля из ViewModel)
                         Text(
                             text = "Мои задачи: ${tasks.size} ($currentProfile)",
                             fontWeight = FontWeight.Bold
@@ -102,7 +98,7 @@ fun MainTaskAppScreen(
                                 contentDescription = "Сменить тему"
                             )
                         }
-                        // Кнопка профиля (открывает диалог с переключением профилей)
+                        // Кнопка профиля
                         IconButton(onClick = { showProfileDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Person,
@@ -127,7 +123,7 @@ fun MainTaskAppScreen(
                     .padding(innerPadding)
                     .background(MaterialTheme.colorScheme.background)
             ) {
-                // Адаптивность: maxWidth > 600.dp -> планшет (2 колонки), иначе телефон (1 колонка)
+                // Адаптивность: планшет (2 колонки) или телефон (1 колонка)
                 val isTablet = maxWidth > 600.dp
 
                 if (isTablet) {
@@ -235,7 +231,7 @@ fun MainTaskAppScreen(
         }
     }
 
-    // Диалог профиля с поддержкой переключения профилей («Личный», «Рабочий», «Учеба»)
+    // Диалог профиля с переключением профилей через ViewModel.setProfile()
     if (showProfileDialog) {
         val completedCount = tasks.count { it.isCompleted }
         val inProgressCount = tasks.size - completedCount
@@ -274,7 +270,7 @@ fun MainTaskAppScreen(
                         profiles.forEach { profile ->
                             FilterChip(
                                 selected = currentProfile == profile,
-                                onClick = { currentProfile = profile },
+                                onClick = { viewModel.setProfile(profile) },
                                 label = { Text(profile) }
                             )
                         }
@@ -282,7 +278,7 @@ fun MainTaskAppScreen(
 
                     HorizontalDivider()
 
-                    Text("Статистика по задачам", fontWeight = FontWeight.Bold)
+                    Text("Статистика по задачам ($currentProfile)", fontWeight = FontWeight.Bold)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
@@ -300,7 +296,7 @@ fun MainTaskAppScreen(
         )
     }
 
-    // Диалог быстрого добавления задачи
+    // Диалог быстрого добавления задачи с привязкой к currentProfile
     if (showQuickAddDialog) {
         var newTitle by remember { mutableStateOf("") }
         var newDesc by remember { mutableStateOf("") }
@@ -308,7 +304,7 @@ fun MainTaskAppScreen(
 
         AlertDialog(
             onDismissRequest = { showQuickAddDialog = false },
-            title = { Text("Быстрое добавление задачи") },
+            title = { Text("Добавить задачу ($currentProfile)") },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -358,7 +354,8 @@ fun MainTaskAppScreen(
                                 description = newDesc,
                                 dueDate = System.currentTimeMillis() + 86400000L,
                                 priority = newPriority,
-                                reminderTime = 0L
+                                reminderTime = 0L,
+                                profileName = currentProfile
                             )
                             viewModel.insert(task)
                             showQuickAddDialog = false
@@ -402,7 +399,7 @@ fun TaskSearchAndListContent(
             onQueryChange = onQueryChange
         )
 
-        // Фильтры приоритетов с русскими названиями и фиксированными цветами
+        // Фильтры приоритетов
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -413,7 +410,7 @@ fun TaskSearchAndListContent(
             FilterChip(selected = selectedPriority == 1, onClick = { onPriorityChange(1) }, label = { Text("Низкий") })
         }
 
-        // Список задач
+        // Список задач текущего профиля
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -423,7 +420,7 @@ fun TaskSearchAndListContent(
         ) {
             item {
                 Text(
-                    text = "Все задачи ($filteredSize)",
+                    text = "Задачи профиля ($filteredSize)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 4.dp)
@@ -494,7 +491,7 @@ fun TaskSearchAndListContent(
     }
 }
 
-// Раскрывающаяся карточка задачи с точными цветами приоритетов
+// Раскрывающаяся карточка задачи
 @Composable
 fun ExpandableTaskCardView(
     task: Task,
@@ -505,7 +502,6 @@ fun ExpandableTaskCardView(
     val sdf = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
     val dueDateStr = sdf.format(Date(task.dueDate))
 
-    // Цвета приоритетов: Высокий - Красный, Средний - Оранжевый, Низкий - Зеленый
     val priorityColor = when (task.priority) {
         3 -> Color(0xFFE53935) // Высокий
         2 -> Color(0xFFFF9800) // Средний
@@ -545,7 +541,6 @@ fun ExpandableTaskCardView(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        // Бейдж приоритета с точным цветом
                         Surface(
                             color = priorityColor,
                             shape = RoundedCornerShape(4.dp)
