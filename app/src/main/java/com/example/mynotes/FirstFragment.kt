@@ -28,7 +28,8 @@ class FirstFragment : Fragment() {
                                 putLong("taskId", taskId)
                             }
                             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment, bundle)
-                        }
+                        },
+                        onAddNewTask = {}
                     )
                 }
             }

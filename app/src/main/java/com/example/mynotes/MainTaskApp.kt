@@ -27,13 +27,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой изолированных профилей («Личный», «Рабочий», «Учеба»).
+ * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой изолированных профилей и навигацией в TaskEditScreen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainTaskAppScreen(
     viewModel: TaskViewModel,
-    onNavigateToDetail: (Long) -> Unit
+    onNavigateToDetail: (Long) -> Unit,
+    onAddNewTask: () -> Unit
 ) {
     val tasks by viewModel.allTasks.observeAsState(emptyList())
     val currentProfile by viewModel.currentProfile.observeAsState("Личный")
@@ -43,7 +44,6 @@ fun MainTaskAppScreen(
     var selectedPriority by rememberSaveable { mutableStateOf<Int?>(null) } // null = Все, 3 = Высокий, 2 = Средний, 1 = Низкий
     var isDarkTheme by rememberSaveable { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
-    var showQuickAddDialog by remember { mutableStateOf(false) }
     
     // Управление профилями (Личный, Рабочий, Учеба)
     val profiles = listOf("Личный", "Рабочий", "Учеба")
@@ -110,7 +110,7 @@ fun MainTaskAppScreen(
             },
             floatingActionButton = {
                 FloatingActionButton(
-                    onClick = { showQuickAddDialog = true },
+                    onClick = onAddNewTask,
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = "Добавить задачу")
@@ -181,7 +181,7 @@ fun MainTaskAppScreen(
                                 ) {
                                     Text("Профиль: $currentProfile", fontWeight = FontWeight.Bold)
                                     Button(
-                                        onClick = { showQuickAddDialog = true },
+                                        onClick = onAddNewTask,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Text("Добавить задачу")
@@ -291,82 +291,6 @@ fun MainTaskAppScreen(
             confirmButton = {
                 TextButton(onClick = { showProfileDialog = false }) {
                     Text("Готово")
-                }
-            }
-        )
-    }
-
-    // Диалог быстрого добавления задачи с привязкой к currentProfile
-    if (showQuickAddDialog) {
-        var newTitle by remember { mutableStateOf("") }
-        var newDesc by remember { mutableStateOf("") }
-        var newPriority by remember { mutableStateOf(2) } // Medium default
-
-        AlertDialog(
-            onDismissRequest = { showQuickAddDialog = false },
-            title = { Text("Добавить задачу ($currentProfile)") },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = newTitle,
-                        onValueChange = { newTitle = it },
-                        label = { Text("Название") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = newDesc,
-                        onValueChange = { newDesc = it },
-                        label = { Text("Описание") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text("Приоритет:", style = MaterialTheme.typography.bodyMedium)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        FilterChip(
-                            selected = newPriority == 1,
-                            onClick = { newPriority = 1 },
-                            label = { Text("Низкий") }
-                        )
-                        FilterChip(
-                            selected = newPriority == 2,
-                            onClick = { newPriority = 2 },
-                            label = { Text("Средний") }
-                        )
-                        FilterChip(
-                            selected = newPriority == 3,
-                            onClick = { newPriority = 3 },
-                            label = { Text("Высокий") }
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (newTitle.isNotBlank()) {
-                            val task = Task(
-                                title = newTitle,
-                                description = newDesc,
-                                dueDate = System.currentTimeMillis() + 86400000L,
-                                priority = newPriority,
-                                reminderTime = 0L
-                            )
-                            viewModel.insert(task)
-                            showQuickAddDialog = false
-                        }
-                    }
-                ) {
-                    Text("Добавить")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showQuickAddDialog = false }) {
-                    Text("Отмена")
                 }
             }
         )
