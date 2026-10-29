@@ -31,6 +31,7 @@ class SecondFragment : Fragment() {
     private var selectedReminderDate: Calendar = Calendar.getInstance()
     private var isReminderSet: Boolean = false
     private var taskId: Long = -1L
+    private var taskProfile: String = "Личный"
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -214,7 +215,8 @@ class SecondFragment : Fragment() {
             description = description,
             dueDate = selectedDate.timeInMillis,
             priority = priority,
-            reminderTime = reminderTime
+            reminderTime = reminderTime,
+            profileName = taskProfile
         )
 
         if (taskId == -1L) {
