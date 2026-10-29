@@ -27,15 +27,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Единый продуктовый экран задач (MainTaskAppScreen), объединяющий все возможности лабораторных работ:
- * 1. Счётчик задач в TopAppBar («Мои задачи: N»)
- * 2. Поиск по задачам (TaskSearchBar)
- * 3. Пагинация и бесконечный скролл с LazyColumn, разделителями и анимацией (animateItem)
- * 4. Раскрывающиеся карточки с подробным описанием (ExpandableTaskCard)
- * 5. Адаптивный интерфейс для планшетов (> 600.dp - две колонки) и телефонов
- * 6. Модальное окно профиля с реальной статистикой выполненных и текущих задач
- * 7. Быстрое добавление задачи через FAB и диалоговое окно
- * 8. Переключение тёмной и светлой темы
+ * Единый продуктовый экран задач (MainTaskAppScreen):
+ * - Без лишнего меню в TopAppBar (оставлены счётчик, переключатель темы и профиль)
+ * - Локализованные приоритеты («Высокий», «Средний», «Низкий») с фиксированными цветами
+ * - Поддержка переключения профилей («Личный», «Рабочий», «Учеба»)
+ * - Поиск, пагинация, раскрывающиеся карточки, адаптивность под планшеты
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,11 +43,15 @@ fun MainTaskAppScreen(
 
     // Состояния интерфейса
     var query by rememberSaveable { mutableStateOf("") }
-    var selectedPriority by rememberSaveable { mutableStateOf<Int?>(null) } // null = Все, 3 = HIGH, 2 = MEDIUM, 1 = LOW
+    var selectedPriority by rememberSaveable { mutableStateOf<Int?>(null) } // null = Все, 3 = Высокий, 2 = Средний, 1 = Низкий
     var isDarkTheme by rememberSaveable { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
     var showQuickAddDialog by remember { mutableStateOf(false) }
     
+    // Управление профилями (Личный, Рабочий, Учеба)
+    val profiles = listOf("Личный", "Рабочий", "Учеба")
+    var currentProfile by rememberSaveable { mutableStateOf("Личный") }
+
     // Пагинация списка
     var displayLimit by rememberSaveable { mutableStateOf(20) }
     var isLoadingMore by remember { mutableStateOf(false) }
@@ -88,21 +88,21 @@ fun MainTaskAppScreen(
             topBar = {
                 TopAppBar(
                     title = {
-                        // (Лаба 4: Счётчик) Мои задачи: N (реальное количество из базы)
+                        // Счётчик: Мои задачи: N (с указанием текущего профиля)
                         Text(
-                            text = "Мои задачи: ${tasks.size}",
+                            text = "Мои задачи: ${tasks.size} ($currentProfile)",
                             fontWeight = FontWeight.Bold
                         )
                     },
                     actions = {
-                        // (Лаба 4: Тёмная тема) Переключатель темы
+                        // Переключатель темы
                         IconButton(onClick = { isDarkTheme = !isDarkTheme }) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = "Сменить тему"
                             )
                         }
-                        // (Лаба 3: Профиль) Кнопка профиля
+                        // Кнопка профиля (открывает диалог с переключением профилей)
                         IconButton(onClick = { showProfileDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Person,
@@ -113,7 +113,6 @@ fun MainTaskAppScreen(
                 )
             },
             floatingActionButton = {
-                // (Лаба 4: Быстрое добавление) Кнопка "+"
                 FloatingActionButton(
                     onClick = { showQuickAddDialog = true },
                     containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -128,11 +127,10 @@ fun MainTaskAppScreen(
                     .padding(innerPadding)
                     .background(MaterialTheme.colorScheme.background)
             ) {
-                // (Лаба 3: Две колонки / адаптивность) maxWidth > 600.dp -> планшет (2 колонки), иначе телефон (1 колонка)
+                // Адаптивность: maxWidth > 600.dp -> планшет (2 колонки), иначе телефон (1 колонка)
                 val isTablet = maxWidth > 600.dp
 
                 if (isTablet) {
-                    // Планшет: Две колонки (70% список, 30% панель управления)
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
@@ -185,7 +183,7 @@ fun MainTaskAppScreen(
                                     modifier = Modifier.padding(16.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text("Быстрое меню", fontWeight = FontWeight.Bold)
+                                    Text("Профиль: $currentProfile", fontWeight = FontWeight.Bold)
                                     Button(
                                         onClick = { showQuickAddDialog = true },
                                         modifier = Modifier.fillMaxWidth()
@@ -196,14 +194,13 @@ fun MainTaskAppScreen(
                                         onClick = { showProfileDialog = true },
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text("Мой профиль")
+                                        Text("Сменить профиль")
                                     }
                                 }
                             }
                         }
                     }
                 } else {
-                    // Телефон: Одна колонка
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -238,19 +235,19 @@ fun MainTaskAppScreen(
         }
     }
 
-    // Диалог профиля (Лаба 3: Профиль на основе реальных задач из базы)
+    // Диалог профиля с поддержкой переключения профилей («Личный», «Рабочий», «Учеба»)
     if (showProfileDialog) {
         val completedCount = tasks.count { it.isCompleted }
         val inProgressCount = tasks.size - completedCount
 
         AlertDialog(
             onDismissRequest = { showProfileDialog = false },
-            title = { Text("Профиль пользователя") },
+            title = { Text("Управление профилем") },
             text = {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Box(
                         modifier = Modifier
@@ -266,9 +263,26 @@ fun MainTaskAppScreen(
                             tint = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
-                    Text("Мой Задачник", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                    Text("Всего задач в базе: ${tasks.size}", style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Активный профиль: $currentProfile", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+
+                    // Выбор профиля
+                    Text("Выберите профиль:", style = MaterialTheme.typography.bodySmall)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        profiles.forEach { profile ->
+                            FilterChip(
+                                selected = currentProfile == profile,
+                                onClick = { currentProfile = profile },
+                                label = { Text(profile) }
+                            )
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Text("Статистика по задачам", fontWeight = FontWeight.Bold)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
@@ -280,13 +294,13 @@ fun MainTaskAppScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showProfileDialog = false }) {
-                    Text("Закрыть")
+                    Text("Готово")
                 }
             }
         )
     }
 
-    // Диалог быстрого добавления задачи (Лаба 4: Быстрое добавление)
+    // Диалог быстрого добавления задачи
     if (showQuickAddDialog) {
         var newTitle by remember { mutableStateOf("") }
         var newDesc by remember { mutableStateOf("") }
@@ -320,17 +334,17 @@ fun MainTaskAppScreen(
                         FilterChip(
                             selected = newPriority == 1,
                             onClick = { newPriority = 1 },
-                            label = { Text("Low") }
+                            label = { Text("Низкий") }
                         )
                         FilterChip(
                             selected = newPriority == 2,
                             onClick = { newPriority = 2 },
-                            label = { Text("Med") }
+                            label = { Text("Средний") }
                         )
                         FilterChip(
                             selected = newPriority == 3,
                             onClick = { newPriority = 3 },
-                            label = { Text("High") }
+                            label = { Text("Высокий") }
                         )
                     }
                 }
@@ -382,24 +396,24 @@ fun TaskSearchAndListContent(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // (Лаба 4: Поиск) Stateless поле поиска
+        // Поле поиска
         TaskSearchBar(
             query = query,
             onQueryChange = onQueryChange
         )
 
-        // (Лаба 5: Фильтры) Переключатель категорий по приоритету
+        // Фильтры приоритетов с русскими названиями и фиксированными цветами
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChip(selected = selectedPriority == null, onClick = { onPriorityChange(null) }, label = { Text("Все") })
-            FilterChip(selected = selectedPriority == 3, onClick = { onPriorityChange(3) }, label = { Text("HIGH") })
-            FilterChip(selected = selectedPriority == 2, onClick = { onPriorityChange(2) }, label = { Text("MEDIUM") })
-            FilterChip(selected = selectedPriority == 1, onClick = { onPriorityChange(1) }, label = { Text("LOW") })
+            FilterChip(selected = selectedPriority == 3, onClick = { onPriorityChange(3) }, label = { Text("Высокий") })
+            FilterChip(selected = selectedPriority == 2, onClick = { onPriorityChange(2) }, label = { Text("Средний") })
+            FilterChip(selected = selectedPriority == 1, onClick = { onPriorityChange(1) }, label = { Text("Низкий") })
         }
 
-        // (Лаба 5: Списки и Пагинация) LazyColumn с заголовком, разделителями и анимацией
+        // Список задач
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -433,7 +447,6 @@ fun TaskSearchAndListContent(
                 }
             } else {
                 itemsIndexed(visibleTasks, key = { _, task -> task.id }) { index, task ->
-                    // (Лаба 4: Раскрывающиеся карточки) Карточка с возможностью раскрытия описания
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -454,7 +467,7 @@ fun TaskSearchAndListContent(
                     }
                 }
 
-                // Кнопка пагинации / бесконечного скролла
+                // Кнопка пагинации
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
@@ -481,7 +494,7 @@ fun TaskSearchAndListContent(
     }
 }
 
-// Раскрывающаяся карточка задачи (интеграция Лабы 4 с реальной моделью Task)
+// Раскрывающаяся карточка задачи с точными цветами приоритетов
 @Composable
 fun ExpandableTaskCardView(
     task: Task,
@@ -492,10 +505,17 @@ fun ExpandableTaskCardView(
     val sdf = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
     val dueDateStr = sdf.format(Date(task.dueDate))
 
+    // Цвета приоритетов: Высокий - Красный, Средний - Оранжевый, Низкий - Зеленый
     val priorityColor = when (task.priority) {
-        3 -> Color.Red
-        2 -> Color(0xFFFF9800)
-        else -> Color(0xFF4CAF50)
+        3 -> Color(0xFFE53935) // Высокий
+        2 -> Color(0xFFFF9800) // Средний
+        else -> Color(0xFF4CAF50) // Низкий
+    }
+
+    val priorityName = when (task.priority) {
+        3 -> "Высокий"
+        2 -> "Средний"
+        else -> "Низкий"
     }
 
     Card(
@@ -516,11 +536,29 @@ fun ExpandableTaskCardView(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = task.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        // Бейдж приоритета с точным цветом
+                        Surface(
+                            color = priorityColor,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = priorityName,
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Срок: $dueDateStr",
