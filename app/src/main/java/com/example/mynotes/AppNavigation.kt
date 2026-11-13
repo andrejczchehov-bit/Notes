@@ -144,7 +144,11 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.weight(1f), // <--- ВОТ ЭТО ИСПРАВИТ БАГ
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null)
                             Text("Показывать выполненные задачи", fontWeight = FontWeight.Medium)
                         }
@@ -235,7 +239,6 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Версия 1.0.0", fontWeight = FontWeight.Medium)
-                    Text("", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
