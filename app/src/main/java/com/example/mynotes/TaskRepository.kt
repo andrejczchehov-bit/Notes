@@ -22,4 +22,8 @@ class TaskRepository(private val taskDao: TaskDao) {
     suspend fun getTaskById(id: Long): Task? {
         return taskDao.getTaskById(id)
     }
+
+    suspend fun deleteCompletedTasks() {
+        taskDao.deleteCompletedTasks()
+    }
 }

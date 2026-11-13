@@ -23,13 +23,14 @@ class FirstFragment : Fragment() {
                 MaterialTheme {
                     MainTaskAppScreen(
                         viewModel = viewModel,
-                        onNavigateToDetail = { taskId ->
+                        onNavigateToDetail = { task ->
                             val bundle = Bundle().apply {
-                                putLong("taskId", taskId)
+                                putLong("taskId", task.id)
                             }
                             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment, bundle)
                         },
-                        onAddNewTask = {}
+                        onAddNewTask = {},
+                        onNavigateToSettings = {}
                     )
                 }
             }

@@ -27,14 +27,15 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой изолированных профилей и навигацией в TaskEditScreen.
+ * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой изолированных профилей и навигацией.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainTaskAppScreen(
     viewModel: TaskViewModel,
-    onNavigateToDetail: (Long) -> Unit,
-    onAddNewTask: () -> Unit
+    onNavigateToDetail: (Task) -> Unit,
+    onAddNewTask: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     val tasks by viewModel.allTasks.observeAsState(emptyList())
     val currentProfile by viewModel.currentProfile.observeAsState("Личный")
@@ -42,7 +43,6 @@ fun MainTaskAppScreen(
     // Состояния интерфейса
     var query by rememberSaveable { mutableStateOf("") }
     var selectedPriority by rememberSaveable { mutableStateOf<Int?>(null) } // null = Все, 3 = Высокий, 2 = Средний, 1 = Низкий
-    var isDarkTheme by rememberSaveable { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
     
     // Управление профилями (Личный, Рабочий, Учеба)
@@ -68,6 +68,10 @@ fun MainTaskAppScreen(
     val visibleTasks = filteredTasks.take(displayLimit)
     val hasMore = displayLimit < filteredTasks.size
 
+    // Тема получается из глобального SettingsViewModel через CompositionLocal
+    val settingsViewModel = LocalSettingsViewModel.current
+    val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
+
     val customColorScheme = if (isDarkTheme) {
         darkColorScheme(
             background = Color(0xFF121212),
@@ -91,11 +95,11 @@ fun MainTaskAppScreen(
                         )
                     },
                     actions = {
-                        // Переключатель темы
-                        IconButton(onClick = { isDarkTheme = !isDarkTheme }) {
+                        // Иконка настроек для перехода на экран "settings" (Лаба 6)
+                        IconButton(onClick = onNavigateToSettings) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = "Сменить тему"
+                                contentDescription = "Настройки"
                             )
                         }
                         // Кнопка профиля
@@ -308,7 +312,7 @@ fun TaskSearchAndListContent(
     hasMore: Boolean,
     isLoadingMore: Boolean,
     listState: androidx.compose.foundation.lazy.LazyListState,
-    onTaskClick: (Long) -> Unit,
+    onTaskClick: (Task) -> Unit,
     onTaskChecked: (Task, Boolean) -> Unit,
     onLoadMore: () -> Unit
 ) {
@@ -398,7 +402,7 @@ fun TaskSearchAndListContent(
                     ) {
                         ExpandableTaskCardView(
                             task = task,
-                            onClick = { onTaskClick(task.id) },
+                            onClick = { onTaskClick(task) },
                             onChecked = { checked -> onTaskChecked(task, checked) }
                         )
                     }
@@ -442,7 +446,7 @@ fun TaskSearchAndListContent(
 @Composable
 fun ExpandableTaskCardView(
     task: Task,
-    onClick: () -> Unit,
+    onClick: (Task) -> Unit,
     onChecked: (Boolean) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -464,7 +468,7 @@ fun ExpandableTaskCardView(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded },
+            .clickable { onClick(task) },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -524,7 +528,7 @@ fun ExpandableTaskCardView(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(onClick = onClick) {
+                    TextButton(onClick = { onClick(task) }) {
                         Text("Редактировать задачу")
                     }
                 }
