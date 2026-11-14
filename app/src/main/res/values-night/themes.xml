@@ -1,6 +1,4 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.MyNotes" parent="Theme.Material3.DayNight">
-        <!-- Customize your dark theme here. -->
-    </style>
+    <!-- Base application theme with Dynamic Colors support and standard soft backgrounds. -->
+    <style name="Base.Theme.MyNotes" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar" />
 </resources>
