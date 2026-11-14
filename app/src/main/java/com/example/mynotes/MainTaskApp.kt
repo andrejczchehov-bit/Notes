@@ -55,9 +55,8 @@ fun MainTaskAppScreen(
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    // Тема и настройки получаются из глобального SettingsViewModel через CompositionLocal
+    // Настройки получаются из глобального SettingsViewModel через CompositionLocal
     val settingsViewModel = LocalSettingsViewModel.current
-    val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
     val showCompleted by settingsViewModel.showCompletedTasks.collectAsState()
 
     // Фильтрация задач (поиск + приоритет + скрытие выполненных)
@@ -75,146 +74,70 @@ fun MainTaskAppScreen(
     val visibleTasks = filteredTasks.take(displayLimit)
     val hasMore = displayLimit < filteredTasks.size
 
-    val customColorScheme = if (isDarkTheme) {
-        darkColorScheme(
-            background = Color(0xFF121212),
-            surface = Color(0xFF1E1E1E),
-            onBackground = Color.White,
-            onSurface = Color.White
-        )
-    } else {
-        lightColorScheme()
-    }
-
-    MaterialTheme(colorScheme = customColorScheme) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        // Счётчик: Мои задачи: N (для текущего профиля из ViewModel)
-                        Text(
-                            text = "Мои задачи: ${tasks.size} ($currentProfile)",
-                            fontWeight = FontWeight.Bold
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    // Счётчик: Мои задачи: N (для текущего профиля из ViewModel)
+                    Text(
+                        text = "Мои задачи: ${tasks.size} ($currentProfile)",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                actions = {
+                    // Иконка облака для перехода на экран "sync" (Лаба 7)
+                    IconButton(onClick = onNavigateToSync) {
+                        Icon(
+                            imageVector = Icons.Default.Cloud,
+                            contentDescription = "Синхронизация"
                         )
-                    },
-                    actions = {
-                        // Иконка облака для перехода на экран "sync" (Лаба 7)
-                        IconButton(onClick = onNavigateToSync) {
-                            Icon(
-                                imageVector = Icons.Default.Cloud,
-                                contentDescription = "Синхронизация"
-                            )
-                        }
-                        // Иконка настроек для перехода на экран "settings" (Лаба 6)
-                        IconButton(onClick = onNavigateToSettings) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Настройки"
-                            )
-                        }
-                        // Кнопка профиля
-                        IconButton(onClick = { showProfileDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Профиль"
-                            )
-                        }
                     }
-                )
-            },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = onAddNewTask,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Добавить задачу")
+                    // Иконка настроек для перехода на экран "settings" (Лаба 6)
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Настройки"
+                        )
+                    }
+                    // Кнопка профиля
+                    IconButton(onClick = { showProfileDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Профиль"
+                        )
+                    }
                 }
-            }
-        ) { innerPadding ->
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background)
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddNewTask,
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
-                // Адаптивность: планшет (2 колонки) или телефон (1 колонка)
-                val isTablet = maxWidth > 600.dp
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Добавить задачу")
+            }
+        }
+    ) { innerPadding ->
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            // Адаптивность: планшет (2 колонки) или телефон (1 колонка)
+            val isTablet = maxWidth > 600.dp
 
-                if (isTablet) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .weight(0.7f)
-                                .fillMaxHeight()
-                        ) {
-                            TaskSearchAndListContent(
-                                query = query,
-                                onQueryChange = { query = it },
-                                selectedPriority = selectedPriority,
-                                onPriorityChange = { selectedPriority = it },
-                                visibleTasks = visibleTasks,
-                                filteredSize = filteredTasks.size,
-                                hasMore = hasMore,
-                                isLoadingMore = isLoadingMore,
-                                listState = listState,
-                                onTaskClick = onNavigateToDetail,
-                                onTaskChecked = { task, checked ->
-                                    viewModel.update(task.copy(isCompleted = checked))
-                                },
-                                onLoadMore = {
-                                    isLoadingMore = true
-                                    coroutineScope.launch {
-                                        delay(1000)
-                                        displayLimit += 20
-                                        isLoadingMore = false
-                                    }
-                                }
-                            )
-                        }
-
-                        // Правая колонка управления для планшета
-                        Column(
-                            modifier = Modifier
-                                .weight(0.3f)
-                                .fillMaxHeight(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text("Профиль: $currentProfile", fontWeight = FontWeight.Bold)
-                                    Button(
-                                        onClick = onAddNewTask,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("Добавить задачу")
-                                    }
-                                    OutlinedButton(
-                                        onClick = { showProfileDialog = true },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("Сменить профиль")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
+            if (isTablet) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
+                            .weight(0.7f)
+                            .fillMaxHeight()
                     ) {
                         TaskSearchAndListContent(
                             query = query,
@@ -240,6 +163,69 @@ fun MainTaskAppScreen(
                             }
                         )
                     }
+
+                    // Правая колонка управления для планшета
+                    Column(
+                        modifier = Modifier
+                            .weight(0.3f)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("Профиль: $currentProfile", fontWeight = FontWeight.Bold)
+                                Button(
+                                    onClick = onAddNewTask,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Добавить задачу")
+                                }
+                                OutlinedButton(
+                                    onClick = { showProfileDialog = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Сменить профиль")
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    TaskSearchAndListContent(
+                        query = query,
+                        onQueryChange = { query = it },
+                        selectedPriority = selectedPriority,
+                        onPriorityChange = { selectedPriority = it },
+                        visibleTasks = visibleTasks,
+                        filteredSize = filteredTasks.size,
+                        hasMore = hasMore,
+                        isLoadingMore = isLoadingMore,
+                        listState = listState,
+                        onTaskClick = onNavigateToDetail,
+                        onTaskChecked = { task, checked ->
+                            viewModel.update(task.copy(isCompleted = checked))
+                        },
+                        onLoadMore = {
+                            isLoadingMore = true
+                            coroutineScope.launch {
+                                delay(1000)
+                                displayLimit += 20
+                                isLoadingMore = false
+                            }
+                        }
+                    )
                 }
             }
         }
