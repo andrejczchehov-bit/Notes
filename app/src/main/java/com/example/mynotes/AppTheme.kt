@@ -15,8 +15,8 @@ import androidx.compose.ui.unit.sp
 /**
  * Кастомная тема Material 3 приложения (Лабораторная работа №8).
  * Правила палитры:
- * 1. При ThemeMode.DARK используются динамические цвета системы (dynamicDarkColorScheme).
- * 2. При forceDarkContent = true принудительно используются кастомные DarkColors (фиолетовые), игнорируя динамику.
+ * 1. При forceDarkContent = true принудительно используются кастомные DarkColors (фиолетовые).
+ * 2. Во всех остальных случаях (System, Light, Dark) — ВСЕГДА используются системные динамические цвета (dynamicDarkColorScheme / dynamicLightColorScheme).
  */
 private val LightColors = lightColorScheme(
     primary = Color(0xFF6750A4),
@@ -75,9 +75,9 @@ fun AppTheme(
 
     val context = LocalContext.current
     val colorScheme = when {
-        // Если включен forceDarkContent, принудительно используем наши кастомные DarkColors (фиолетовые)
+        // Если принудительно включен forceDarkContent, используем кастомные DarkColors (фиолетовые)
         forceDarkContent -> DarkColors
-        // Если включена динамика и устройство поддерживает Android 12+, используем динамические цвета
+        // Во всех остальных случаях (System, Light, Dark) — используем динамические цвета, если SDK >= S
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
