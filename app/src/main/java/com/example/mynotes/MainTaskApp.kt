@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой изолированных профилей и навигацией.
+ * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой изолированных профилей, навигации и скрытия выполненных задач.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +35,8 @@ fun MainTaskAppScreen(
     viewModel: TaskViewModel,
     onNavigateToDetail: (Task) -> Unit,
     onAddNewTask: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToSync: () -> Unit
 ) {
     val tasks by viewModel.allTasks.observeAsState(emptyList())
     val currentProfile by viewModel.currentProfile.observeAsState("Личный")
@@ -54,9 +55,15 @@ fun MainTaskAppScreen(
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    // Фильтрация задач (поиск + приоритет)
-    val filteredTasks = remember(tasks, query, selectedPriority) {
+    // Тема и настройки получаются из глобального SettingsViewModel через CompositionLocal
+    val settingsViewModel = LocalSettingsViewModel.current
+    val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
+    val showCompleted by settingsViewModel.showCompletedTasks.collectAsState()
+
+    // Фильтрация задач (поиск + приоритет + скрытие выполненных)
+    val filteredTasks = remember(tasks, query, selectedPriority, showCompleted) {
         tasks.filter { task ->
+            if (!showCompleted && task.isCompleted) return@filter false
             val matchesQuery = query.isBlank() ||
                     task.title.contains(query, ignoreCase = true) ||
                     task.description.contains(query, ignoreCase = true)
@@ -67,10 +74,6 @@ fun MainTaskAppScreen(
 
     val visibleTasks = filteredTasks.take(displayLimit)
     val hasMore = displayLimit < filteredTasks.size
-
-    // Тема получается из глобального SettingsViewModel через CompositionLocal
-    val settingsViewModel = LocalSettingsViewModel.current
-    val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
 
     val customColorScheme = if (isDarkTheme) {
         darkColorScheme(
@@ -95,6 +98,13 @@ fun MainTaskAppScreen(
                         )
                     },
                     actions = {
+                        // Иконка облака для перехода на экран "sync" (Лаба 7)
+                        IconButton(onClick = onNavigateToSync) {
+                            Icon(
+                                imageVector = Icons.Default.Cloud,
+                                contentDescription = "Синхронизация"
+                            )
+                        }
                         // Иконка настроек для перехода на экран "settings" (Лаба 6)
                         IconButton(onClick = onNavigateToSettings) {
                             Icon(

@@ -29,8 +29,8 @@ import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
 /**
- * Лабораторная работа №6: Навигация в Jetpack Compose
- * Включает HomeScreen, SettingsScreen (с расширенными настройками), TaskNotFoundScreen,
+ * Лабораторная работа №6 и №7: Навигация в Jetpack Compose
+ * Включает HomeScreen, SettingsScreen, CloudSyncScreen, TaskNotFoundScreen,
  * анимации переходов, передачу JSON-аргументов и Deep Link.
  */
 
@@ -144,11 +144,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.weight(1f), // <--- ВОТ ЭТО ИСПРАВИТ БАГ
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null)
                             Text("Показывать выполненные задачи", fontWeight = FontWeight.Medium)
                         }
@@ -239,6 +235,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Версия 1.0.0", fontWeight = FontWeight.Medium)
+                    Text("Разработано в рамках лабораторных работ", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -353,6 +350,18 @@ fun AppNavGraph(
                     },
                     onNavigateToSettings = {
                         navController.navigate("settings")
+                    },
+                    onNavigateToSync = {
+                        navController.navigate("sync")
+                    }
+                )
+            }
+
+            // Маршрут "sync" — облачная синхронизация (Лаба 7)
+            composable("sync") {
+                CloudSyncScreen(
+                    onBack = {
+                        navController.popBackStack()
                     }
                 )
             }
