@@ -9,10 +9,12 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 
 /**
- * PostsViewModel с поддержкой кэша в памяти, фонового обновления (isRefreshing)
- * и офлайн-режима при IOException (Лабораторная работа №10, PRO-уровень).
+ * PostsViewModel с поддержкой выбора языка новостей (Русский / Английский), кэша и офлайна (Лабораторная работа №10).
  */
-class PostsViewModel(private val repository: PostsRepository = PostsRepository()) : ViewModel() {
+class PostsViewModel(
+    private val initialLanguage: String = "Русский",
+    private val repository: PostsRepository = PostsRepository()
+) : ViewModel() {
     private val _uiState = MutableStateFlow<PostsUiState>(PostsUiState.Loading)
     val uiState: StateFlow<PostsUiState> = _uiState.asStateFlow()
 
@@ -26,22 +28,21 @@ class PostsViewModel(private val repository: PostsRepository = PostsRepository()
         private set
 
     init {
-        load()
+        load(language = initialLanguage)
     }
 
-    fun load(isRefresh: Boolean = false) {
+    fun load(isRefresh: Boolean = false, language: String = "Русский") {
         viewModelScope.launch {
             if (isRefresh) {
                 _isRefreshing.value = true
             } else if (cachedPosts.isEmpty()) {
                 _uiState.value = PostsUiState.Loading
             } else {
-                // Если кэш есть, сразу показываем его и запускаем обновление в фоне
                 _uiState.value = PostsUiState.Success(cachedPosts)
                 _isRefreshing.value = true
             }
 
-            repository.getPosts()
+            repository.getPosts(language)
                 .onSuccess { posts ->
                     cachedPosts = posts
                     _uiState.value = PostsUiState.Success(posts)
@@ -53,7 +54,6 @@ class PostsViewModel(private val repository: PostsRepository = PostsRepository()
                     if (throwable is IOException || cachedPosts.isNotEmpty()) {
                         _isOffline.value = true
                         if (cachedPosts.isNotEmpty()) {
-                            // Офлайн режим: показываем кэш и бейдж Офлайн, не заменяя экран ошибкой
                             _uiState.value = PostsUiState.Success(cachedPosts)
                         } else {
                             _uiState.value = PostsUiState.Error("Нет подключения к интернету. Показаны кэшированные данные")

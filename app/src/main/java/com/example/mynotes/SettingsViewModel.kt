@@ -10,7 +10,7 @@ enum class ThemeMode {
 }
 
 /**
- * ViewModel для управления глобальными настройками приложения (тема, режим темы, принудительный темный контент, уведомления, фильтрация).
+ * ViewModel для управления глобальными настройками приложения (тема, язык новостей, уведомления, фильтрация).
  */
 class SettingsViewModel : ViewModel() {
     private val _isDarkTheme = MutableStateFlow(false)
@@ -21,6 +21,9 @@ class SettingsViewModel : ViewModel() {
 
     private val _forceDarkContent = MutableStateFlow(false)
     val forceDarkContent: StateFlow<Boolean> = _forceDarkContent.asStateFlow()
+
+    private val _newsLanguage = MutableStateFlow("Русский")
+    val newsLanguage: StateFlow<String> = _newsLanguage.asStateFlow()
 
     private val _showCompletedTasks = MutableStateFlow(true)
     val showCompletedTasks: StateFlow<Boolean> = _showCompletedTasks.asStateFlow()
@@ -43,6 +46,10 @@ class SettingsViewModel : ViewModel() {
 
     fun setForceDarkContent(force: Boolean) {
         _forceDarkContent.value = force
+    }
+
+    fun setNewsLanguage(lang: String) {
+        _newsLanguage.value = lang
     }
 
     fun toggleShowCompleted(enabled: Boolean) {

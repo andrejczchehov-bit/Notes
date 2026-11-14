@@ -20,16 +20,17 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.AsyncImage
 
 /**
- * Детальный экран новости с загрузкой изображения через Coil (Лабораторная работа №10).
+ * Детальный экран новости с надежными заглушками изображений через Coil (Лабораторная работа №10).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostDetailScreen(
     postId: Int,
+    newsLanguage: String = "Русский",
     onBack: () -> Unit
 ) {
     val viewModel: PostDetailViewModel = viewModel(factory = viewModelFactory {
-        initializer { PostDetailViewModel(postId) }
+        initializer { PostDetailViewModel(postId, newsLanguage) }
     })
     val uiState by viewModel.uiState.collectAsState()
 
@@ -79,6 +80,7 @@ fun PostDetailScreen(
                     }
                 }
                 is PostDetailUiState.Success -> {
+                    val imageUrl = state.post.imageUrl.ifBlank { "https://picsum.photos/id/${(state.post.id % 50) + 10}/800/600" }
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -86,9 +88,8 @@ fun PostDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Загрузка реального изображения через Coil (AsyncImage) с использованием post.imageUrl
                         AsyncImage(
-                            model = state.post.imageUrl,
+                            model = imageUrl,
                             contentDescription = "Иллюстрация к новости",
                             modifier = Modifier
                                 .fillMaxWidth()

@@ -77,7 +77,7 @@ fun HomeScreen(
     }
 }
 
-// 2. Расширенный экран настроек (SettingsScreen) с управлением ThemeMode и forceDarkContent
+// 2. Расширенный экран настроек (SettingsScreen) с управлением ThemeMode, языком новостей и forceDarkContent
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -89,6 +89,7 @@ fun SettingsScreen(
 
     val themeMode by settingsViewModel.themeMode.collectAsState()
     val forceDark by settingsViewModel.forceDarkContent.collectAsState()
+    val newsLanguage by settingsViewModel.newsLanguage.collectAsState()
     val showCompleted by settingsViewModel.showCompletedTasks.collectAsState()
     val soundEnabled by settingsViewModel.soundEnabled.collectAsState()
     val vibrationEnabled by settingsViewModel.vibrationEnabled.collectAsState()
@@ -122,6 +123,25 @@ fun SettingsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Язык новостей:", fontWeight = FontWeight.Medium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        FilterChip(
+                            selected = newsLanguage == "Русский",
+                            onClick = { settingsViewModel.setNewsLanguage("Русский") },
+                            label = { Text("Русский") }
+                        )
+                        FilterChip(
+                            selected = newsLanguage == "Английский",
+                            onClick = { settingsViewModel.setNewsLanguage("Английский") },
+                            label = { Text("Английский") }
+                        )
+                    }
+
+                    HorizontalDivider()
+
                     Text("Режим темы:", fontWeight = FontWeight.Medium)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -388,24 +408,32 @@ fun AppNavGraph(
 
             // Маршрут "posts" — посты из сети (Retrofit, Лаба 10)
             composable("posts") {
+                val settingsViewModel = LocalSettingsViewModel.current
+                val newsLanguage by settingsViewModel.newsLanguage.collectAsState()
                 com.example.mynotes.data.PostsScreen(
+                    newsLanguage = newsLanguage,
                     onBack = {
                         navController.popBackStack()
                     },
                     onPostClick = { postId ->
-                        navController.navigate("post_detail/$postId")
+                        navController.navigate("post_detail/$postId?lang=$newsLanguage")
                     }
                 )
             }
 
-            // Маршрут "post_detail/{postId}" — детальный экран поста (Лаба 10)
+            // Маршрут "post_detail/{postId}?lang={lang}" — детальный экран поста (Лаба 10)
             composable(
-                route = "post_detail/{postId}",
-                arguments = listOf(navArgument("postId") { type = NavType.IntType })
+                route = "post_detail/{postId}?lang={lang}",
+                arguments = listOf(
+                    navArgument("postId") { type = NavType.IntType },
+                    navArgument("lang") { type = NavType.StringType; defaultValue = "Русский" }
+                )
             ) { backStackEntry ->
                 val postId = backStackEntry.arguments?.getInt("postId") ?: 1
+                val lang = backStackEntry.arguments?.getString("lang") ?: "Русский"
                 com.example.mynotes.data.PostDetailScreen(
                     postId = postId,
+                    newsLanguage = lang,
                     onBack = {
                         navController.popBackStack()
                     }
@@ -470,7 +498,7 @@ fun AppNavGraph(
                 }
             }
 
-            // Маршрут "settings"
+            // Настройки
             composable("settings") {
                 SettingsScreen(
                     onBack = {

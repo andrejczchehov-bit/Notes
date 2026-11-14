@@ -17,10 +17,11 @@ sealed interface PostDetailUiState {
 }
 
 /**
- * ViewModel для загрузки отдельного поста по ID (Лабораторная работа №10).
+ * ViewModel для загрузки отдельного поста по ID с учетом языка (Лабораторная работа №10).
  */
 class PostDetailViewModel(
     private val postId: Int,
+    private val newsLanguage: String = "Русский",
     private val repository: PostsRepository = PostsRepository()
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PostDetailUiState>(PostDetailUiState.Loading)
@@ -33,7 +34,7 @@ class PostDetailViewModel(
     fun loadPost() {
         viewModelScope.launch {
             _uiState.value = PostDetailUiState.Loading
-            repository.getPost(postId)
+            repository.getPost(postId, newsLanguage)
                 .onSuccess { post ->
                     _uiState.value = PostDetailUiState.Success(post)
                 }

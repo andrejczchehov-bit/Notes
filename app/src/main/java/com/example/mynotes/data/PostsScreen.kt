@@ -9,31 +9,44 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.AsyncImage
 
 /**
- * Экран отображения новостей (Spaceflight News API) с поддержкой PullToRefreshBox,
- * офлайн-бейджа и кэширования (Лабораторная работа №10, PRO-уровень).
+ * Экран отображения новостей с поддержкой выбора языка, надежных заглушек для картинок,
+ * PullToRefreshBox, офлайн-бейджа и кэширования (Лабораторная работа №10).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostsScreen(
+    newsLanguage: String = "Русский",
     onBack: () -> Unit,
-    onPostClick: (Int) -> Unit,
-    viewModel: PostsViewModel = viewModel()
+    onPostClick: (Int) -> Unit
 ) {
+    val viewModel: PostsViewModel = viewModel(factory = viewModelFactory {
+        initializer { PostsViewModel(newsLanguage) }
+    })
+
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isOffline by viewModel.isOffline.collectAsState()
+
+    // Перезагружаем новости при изменении языка в настройках
+    LaunchedEffect(newsLanguage) {
+        viewModel.load(isRefresh = false, language = newsLanguage)
+    }
 
     Scaffold(
         topBar = {
@@ -43,7 +56,7 @@ fun PostsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Новости науки и космоса")
+                        Text(if (newsLanguage == "Русский") "Космические новости" else "Spaceflight News (Международные)")
                         if (isOffline) {
                             Surface(
                                 color = MaterialTheme.colorScheme.error,
@@ -66,16 +79,16 @@ fun PostsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.load(isRefresh = true) }, enabled = !isRefreshing) {
+                    IconButton(onClick = { viewModel.load(isRefresh = true, language = newsLanguage) }, enabled = !isRefreshing) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Обновить")
                     }
                 }
             )
         }
     ) { innerPadding ->
-        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        PullToRefreshBox(
             isRefreshing = isRefreshing,
-            onRefresh = { viewModel.load(isRefresh = true) },
+            onRefresh = { viewModel.load(isRefresh = true, language = newsLanguage) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -107,7 +120,7 @@ fun PostsScreen(
                                 color = MaterialTheme.colorScheme.error,
                                 fontWeight = FontWeight.Bold
                             )
-                            Button(onClick = { viewModel.load() }) {
+                            Button(onClick = { viewModel.load(language = newsLanguage) }) {
                                 Text("Повторить")
                             }
                         }
@@ -121,6 +134,7 @@ fun PostsScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(state.posts, key = { it.id }) { post ->
+                                    val imageUrl = post.imageUrl.ifBlank { "https://picsum.photos/id/${(post.id % 50) + 10}/400/300" }
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -135,17 +149,17 @@ fun PostsScreen(
                                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
                                             AsyncImage(
-                                                model = post.imageUrl,
+                                                model = imageUrl,
                                                 contentDescription = null,
                                                 modifier = Modifier
                                                     .size(64.dp)
-                                                    .clip(MaterialTheme.shapes.small)
+                                                    .clip(MaterialTheme.shapes.small),
+                                                contentScale = ContentScale.Crop
                                             )
                                             Column(
                                                 modifier = Modifier.weight(1f),
                                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                                             ) {
-                                                // Требование: без решётки перед ID, просто title
                                                 Text(
                                                     text = post.title,
                                                     style = MaterialTheme.typography.titleMedium,
