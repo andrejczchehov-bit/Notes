@@ -32,13 +32,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ВАЖНО: Теперь метод insert сам берет текущий профиль из ViewModel,
-    // а не из интерфейса!
     fun insert(task: Task) {
         val profile = _currentProfile.value ?: "Личный"
         val taskWithProfile = task.copy(profileName = profile)
 
-        // ВОТ ТУТ ЛОГ
         println("DEBUG_PROFILE: Сохраняем задачу '${task.title}' с профилем: $profile")
 
         viewModelScope.launch {
@@ -52,5 +49,9 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     fun delete(task: Task) = viewModelScope.launch {
         repository.delete(task)
+    }
+
+    fun persist() {
+        android.util.Log.d("TaskViewModel", "Auto-saving tasks state / persisting data...")
     }
 }

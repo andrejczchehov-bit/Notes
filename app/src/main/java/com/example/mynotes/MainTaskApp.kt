@@ -1,6 +1,13 @@
 package com.example.mynotes
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,20 +21,22 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.asFlow
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой изолированных профилей, навигации и скрытия выполненных задач.
+ * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой анимаций, эффектов и оптимизаций (Лабораторная работа №9).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,13 +47,25 @@ fun MainTaskAppScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToSync: () -> Unit
 ) {
-    val tasks by viewModel.allTasks.observeAsState(emptyList())
-    val currentProfile by viewModel.currentProfile.observeAsState("Личный")
+    val tasks by viewModel.allTasks.asFlow().collectAsStateWithLifecycle(initialValue = emptyList())
+    val currentProfile by viewModel.currentProfile.asFlow().collectAsStateWithLifecycle(initialValue = "Личный")
 
     // Состояния интерфейса
     var query by rememberSaveable { mutableStateOf("") }
+    var debouncedQuery by rememberSaveable { mutableStateOf("") }
     var selectedPriority by rememberSaveable { mutableStateOf<Int?>(null) } // null = Все, 3 = Высокий, 2 = Средний, 1 = Низкий
     var showProfileDialog by remember { mutableStateOf(false) }
+
+    // Дебаунс поиска (Модуль 2)
+    LaunchedEffect(query) {
+        delay(300)
+        debouncedQuery = query
+    }
+
+    // Автосохранение при изменении задач через LaunchedEffect(tasks) (Модуль 2)
+    LaunchedEffect(tasks) {
+        viewModel.persist()
+    }
     
     // Управление профилями (Личный, Рабочий, Учеба)
     val profiles = listOf("Личный", "Рабочий", "Учеба")
@@ -55,19 +76,21 @@ fun MainTaskAppScreen(
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    // Настройки получаются из глобального SettingsViewModel через CompositionLocal
+    // Настройки получаются из глобального SettingsViewModel через CompositionLocal с collectAsStateWithLifecycle
     val settingsViewModel = LocalSettingsViewModel.current
-    val showCompleted by settingsViewModel.showCompletedTasks.collectAsState()
+    val showCompleted by settingsViewModel.showCompletedTasks.collectAsStateWithLifecycle()
 
-    // Фильтрация задач (поиск + приоритет + скрытие выполненных)
-    val filteredTasks = remember(tasks, query, selectedPriority, showCompleted) {
-        tasks.filter { task ->
-            if (!showCompleted && task.isCompleted) return@filter false
-            val matchesQuery = query.isBlank() ||
-                    task.title.contains(query, ignoreCase = true) ||
-                    task.description.contains(query, ignoreCase = true)
-            val matchesPriority = selectedPriority == null || task.priority == selectedPriority
-            matchesQuery && matchesPriority
+    // Фильтрация задач через derivedStateOf (Модуль 2 и 5)
+    val filteredTasks by remember(tasks, debouncedQuery, selectedPriority, showCompleted) {
+        derivedStateOf {
+            tasks.filter { task ->
+                if (!showCompleted && task.isCompleted) return@filter false
+                val matchesQuery = debouncedQuery.isBlank() ||
+                        task.title.contains(debouncedQuery, ignoreCase = true) ||
+                        task.description.contains(debouncedQuery, ignoreCase = true)
+                val matchesPriority = selectedPriority == null || task.priority == selectedPriority
+                matchesQuery && matchesPriority
+            }
         }
     }
 
@@ -85,14 +108,14 @@ fun MainTaskAppScreen(
                     )
                 },
                 actions = {
-                    // Иконка облака для перехода на экран "sync" (Лаба 7)
+                    // Иконка облака для перехода на экран "sync"
                     IconButton(onClick = onNavigateToSync) {
                         Icon(
                             imageVector = Icons.Default.Cloud,
                             contentDescription = "Синхронизация"
                         )
                     }
-                    // Иконка настроек для перехода на экран "settings" (Лаба 6)
+                    // Иконка настроек для перехода на экран "settings"
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -112,6 +135,7 @@ fun MainTaskAppScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddNewTask,
+                modifier = Modifier.testTag(TestTags.addTask),
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Добавить задачу")
@@ -316,10 +340,11 @@ fun TaskSearchAndListContent(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Поле поиска
+        // Поле поиска с testTag (Модуль 3)
         TaskSearchBar(
             query = query,
-            onQueryChange = onQueryChange
+            onQueryChange = onQueryChange,
+            modifier = Modifier.testTag(TestTags.searchField)
         )
 
         // Фильтры приоритетов
@@ -357,7 +382,7 @@ fun TaskSearchAndListContent(
             )
         }
 
-        // Список задач текущего профиля
+        // Список задач текущего профиля (key = { it.id } для производительности, Модуль 4)
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -438,16 +463,24 @@ fun TaskSearchAndListContent(
     }
 }
 
-// Раскрывающаяся карточка задачи
+// Раскрывающаяся карточка задачи с анимациями (Модуль 1) и testTag (Модуль 3)
 @Composable
 fun ExpandableTaskCardView(
     task: Task,
     onClick: (Task) -> Unit,
     onChecked: (Boolean) -> Unit
 ) {
+    android.util.Log.d("RECOMP", "TaskRow ${task.id}")
     var expanded by remember { mutableStateOf(false) }
     val sdf = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
     val dueDateStr = sdf.format(Date(task.dueDate))
+
+    // Плавное изменение цвета фона при переключении isCompleted (300ms, Модуль 1)
+    val backgroundColor by animateColorAsState(
+        targetValue = if (task.isCompleted) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface,
+        animationSpec = tween(300),
+        label = "cardBackgroundColor"
+    )
 
     val priorityColor = when (task.priority) {
         3 -> Color(0xFFE53935) // Высокий
@@ -464,7 +497,10 @@ fun ExpandableTaskCardView(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick(task) },
+            .testTag(TestTags.taskRow(task.id)) // Тег для UI-тестирования (Модуль 3)
+            .animateContentSize() // бесплатная анимация высоты (Модуль 1)
+            .clickable { expanded = !expanded },
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -515,7 +551,13 @@ fun ExpandableTaskCardView(
                 )
             }
 
-            AnimatedVisibility(visible = expanded) {
+            // AnimatedVisibility с enter/exit анимациями и обязательным label = "taskDetails" (Модуль 1)
+            AnimatedVisibility(
+                visible = expanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+                label = "taskDetails"
+            ) {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
                     HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
                     Text(

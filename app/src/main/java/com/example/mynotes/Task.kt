@@ -1,8 +1,13 @@
 package com.example.mynotes
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * Модель задачи (Entity) с аннотацией @Immutable для оптимизации производительности (Лабораторная работа №9).
+ */
+@Immutable
 @Entity(tableName = "tasks")
 data class Task(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

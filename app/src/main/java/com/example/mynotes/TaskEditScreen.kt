@@ -8,8 +8,11 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,17 +22,21 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
  * Compose-экран TaskEditScreen для создания и редактирования задачи с поддержкой дедлайнов,
- * приоритетов и уведомлений через NotificationWorker.
+ * приоритетов, уведомлений, тест-тегов и анимационного индикатора сохранения (Лабораторная работа №9).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +47,7 @@ fun TaskEditScreen(
 ) {
     val context = LocalContext.current
     val currentProfile by viewModel.currentProfile.observeAsState("Личный")
+    val coroutineScope = rememberCoroutineScope()
 
     var title by rememberSaveable { mutableStateOf("") }
     var description by rememberSaveable { mutableStateOf("") }
@@ -48,8 +56,9 @@ fun TaskEditScreen(
     var reminderTime by rememberSaveable { mutableStateOf(0L) }
     var isReminderEnabled by rememberSaveable { mutableStateOf(false) }
     var isExistingTask by rememberSaveable { mutableStateOf(false) }
+    var isSaving by rememberSaveable { mutableStateOf(false) }
 
-    // Загрузка задачи при редактировании
+    // Загрузка задачи при редактировании через LaunchedEffect (Модуль 2)
     LaunchedEffect(taskId) {
         if (taskId != -1L) {
             isExistingTask = true
@@ -237,45 +246,62 @@ fun TaskEditScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Кнопка сохранения
-            Button(
-                onClick = {
-                    if (title.isBlank()) {
-                        Toast.makeText(context, "Введите название задачи", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-
-                    val finalReminder = if (isReminderEnabled) reminderTime else 0L
-                    val task = Task(
-                        id = if (isExistingTask) taskId else 0L,
-                        title = title,
-                        description = description,
-                        dueDate = dueDate,
-                        priority = priority,
-                        reminderTime = finalReminder,
-                        profileName = currentProfile
-                    )
-
-                    if (isExistingTask) {
-                        viewModel.update(task)
-                        if (finalReminder > 0) {
-                            NotificationWorker.schedule(context, task)
-                        } else {
-                            NotificationWorker.cancel(context, task.id)
+            // Кнопка сохранения или пульсирующий индикатор сохранения (Модуль 1)
+            if (isSaving) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    SavingIndicator()
+                }
+            } else {
+                Button(
+                    onClick = {
+                        if (title.isBlank()) {
+                            Toast.makeText(context, "Введите название задачи", Toast.LENGTH_SHORT).show()
+                            return@Button
                         }
-                    } else {
-                        viewModel.insert(task)
-                        if (finalReminder > 0) {
-                            NotificationWorker.schedule(context, task)
-                        }
-                    }
 
-                    Toast.makeText(context, "Задача сохранена", Toast.LENGTH_SHORT).show()
-                    onBack()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Сохранить")
+                        isSaving = true
+                        coroutineScope.launch {
+                            val finalReminder = if (isReminderEnabled) reminderTime else 0L
+                            val task = Task(
+                                id = if (isExistingTask) taskId else 0L,
+                                title = title,
+                                description = description,
+                                dueDate = dueDate,
+                                priority = priority,
+                                reminderTime = finalReminder,
+                                profileName = currentProfile
+                            )
+
+                            if (isExistingTask) {
+                                viewModel.update(task)
+                                if (finalReminder > 0) {
+                                    NotificationWorker.schedule(context, task)
+                                } else {
+                                    NotificationWorker.cancel(context, task.id)
+                                }
+                            } else {
+                                viewModel.insert(task)
+                                if (finalReminder > 0) {
+                                    NotificationWorker.schedule(context, task)
+                                }
+                            }
+
+                            delay(600) // Имитация паузы для анимации сохранения
+                            Toast.makeText(context, "Задача сохранена", Toast.LENGTH_SHORT).show()
+                            onBack()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(TestTags.saveButton) // Тест-тег для сохранения (Модуль 3)
+                ) {
+                    Text("Сохранить")
+                }
             }
 
             // Кнопка удаления
@@ -299,9 +325,55 @@ fun TaskEditScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Удалить задачу")
+                    Text("Задача удалена")
                 }
             }
         }
+    }
+}
+
+/**
+ * Индикатор сохранения на основе rememberInfiniteTransition с тремя пульсирующими точками (Лабораторная работа №9).
+ */
+@Composable
+fun SavingIndicator() {
+    val infiniteTransition = rememberInfiniteTransition(label = "saving")
+    val alpha1 by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot1"
+    )
+    val alpha2 by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, delayMillis = 200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot2"
+    )
+    val alpha3 by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, delayMillis = 400),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot3"
+    )
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(8.dp)
+    ) {
+        Text("Сохранение", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = alpha1)))
+        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = alpha2)))
+        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = alpha3)))
     }
 }
