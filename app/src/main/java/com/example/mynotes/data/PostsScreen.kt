@@ -25,27 +25,27 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.AsyncImage
 
 /**
- * Экран отображения новостей с поддержкой выбора языка, надежных заглушек для картинок,
- * PullToRefreshBox, офлайн-бейджа и кэширования (Лабораторная работа №10).
+ * Экран отображения новостей с поддержкой выбора источника (Космос / Россия),
+ * надежных заглушек для картинок, PullToRefreshBox, офлайн-бейджа и кэширования (Лабораторная работа №10).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostsScreen(
-    newsLanguage: String = "Русский",
+    newsSource: String = "Космос",
     onBack: () -> Unit,
     onPostClick: (Int) -> Unit
 ) {
     val viewModel: PostsViewModel = viewModel(factory = viewModelFactory {
-        initializer { PostsViewModel(newsLanguage) }
+        initializer { PostsViewModel(newsSource) }
     })
 
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isOffline by viewModel.isOffline.collectAsState()
 
-    // Перезагружаем новости при изменении языка в настройках
-    LaunchedEffect(newsLanguage) {
-        viewModel.load(isRefresh = false, language = newsLanguage)
+    // Перезагружаем новости при изменении источника в настройках
+    LaunchedEffect(newsSource) {
+        viewModel.load(isRefresh = false, source = newsSource)
     }
 
     Scaffold(
@@ -56,7 +56,7 @@ fun PostsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(if (newsLanguage == "Русский") "Космические новости" else "Spaceflight News (Международные)")
+                        Text(if (newsSource == "Россия") "Новости России" else "Spaceflight News (Космос)")
                         if (isOffline) {
                             Surface(
                                 color = MaterialTheme.colorScheme.error,
@@ -79,7 +79,7 @@ fun PostsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.load(isRefresh = true, language = newsLanguage) }, enabled = !isRefreshing) {
+                    IconButton(onClick = { viewModel.load(isRefresh = true, source = newsSource) }, enabled = !isRefreshing) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Обновить")
                     }
                 }
@@ -88,7 +88,7 @@ fun PostsScreen(
     ) { innerPadding ->
         PullToRefreshBox(
             isRefreshing = isRefreshing,
-            onRefresh = { viewModel.load(isRefresh = true, language = newsLanguage) },
+            onRefresh = { viewModel.load(isRefresh = true, source = newsSource) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -120,7 +120,7 @@ fun PostsScreen(
                                 color = MaterialTheme.colorScheme.error,
                                 fontWeight = FontWeight.Bold
                             )
-                            Button(onClick = { viewModel.load(language = newsLanguage) }) {
+                            Button(onClick = { viewModel.load(source = newsSource) }) {
                                 Text("Повторить")
                             }
                         }

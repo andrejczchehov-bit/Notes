@@ -28,8 +28,8 @@ import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
 /**
- * Лабораторная работа №6, №7 и №10: Навигация в Jetpack Compose
- * Включает HomeScreen, SettingsScreen, CloudSyncScreen, PostsScreen, PostDetailScreen, TaskNotFoundScreen,
+ * Лабораторная работа №6, №7, №10 и №11: Навигация в Jetpack Compose
+ * Включает HomeScreen, SettingsScreen, CloudSyncScreen, PostsScreen, PostDetailScreen, NotesScreen, TaskNotFoundScreen,
  * анимации переходов, передачу JSON-аргументов и Deep Link.
  */
 
@@ -77,7 +77,7 @@ fun HomeScreen(
     }
 }
 
-// 2. Расширенный экран настроек (SettingsScreen) с управлением ThemeMode, языком новостей и forceDarkContent
+// 2. Расширенный экран настроек (SettingsScreen) с управлением ThemeMode, источником новостей и forceDarkContent
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -89,7 +89,7 @@ fun SettingsScreen(
 
     val themeMode by settingsViewModel.themeMode.collectAsState()
     val forceDark by settingsViewModel.forceDarkContent.collectAsState()
-    val newsLanguage by settingsViewModel.newsLanguage.collectAsState()
+    val newsSource by settingsViewModel.newsSource.collectAsState()
     val showCompleted by settingsViewModel.showCompletedTasks.collectAsState()
     val soundEnabled by settingsViewModel.soundEnabled.collectAsState()
     val vibrationEnabled by settingsViewModel.vibrationEnabled.collectAsState()
@@ -123,20 +123,20 @@ fun SettingsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Язык новостей:", fontWeight = FontWeight.Medium)
+                    Text("Источник новостей:", fontWeight = FontWeight.Medium)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         FilterChip(
-                            selected = newsLanguage == "Русский",
-                            onClick = { settingsViewModel.setNewsLanguage("Русский") },
-                            label = { Text("Русский") }
+                            selected = newsSource == "Космос",
+                            onClick = { settingsViewModel.setNewsSource("Космос") },
+                            label = { Text("Космос") }
                         )
                         FilterChip(
-                            selected = newsLanguage == "Английский",
-                            onClick = { settingsViewModel.setNewsLanguage("Английский") },
-                            label = { Text("Английский") }
+                            selected = newsSource == "Россия",
+                            onClick = { settingsViewModel.setNewsSource("Россия") },
+                            label = { Text("Россия") }
                         )
                     }
 
@@ -393,6 +393,9 @@ fun AppNavGraph(
                     },
                     onNavigateToPosts = {
                         navController.navigate("posts")
+                    },
+                    onNavigateToNotes = {
+                        navController.navigate("notes")
                     }
                 )
             }
@@ -406,34 +409,43 @@ fun AppNavGraph(
                 )
             }
 
-            // Маршрут "posts" — посты из сети (Retrofit, Лаба 10)
-            composable("posts") {
-                val settingsViewModel = LocalSettingsViewModel.current
-                val newsLanguage by settingsViewModel.newsLanguage.collectAsState()
-                com.example.mynotes.data.PostsScreen(
-                    newsLanguage = newsLanguage,
+            // Маршрут "notes" — управление заметками (Лаба 11)
+            composable("notes") {
+                com.example.mynotes.data.NotesScreen(
                     onBack = {
                         navController.popBackStack()
-                    },
-                    onPostClick = { postId ->
-                        navController.navigate("post_detail/$postId?lang=$newsLanguage")
                     }
                 )
             }
 
-            // Маршрут "post_detail/{postId}?lang={lang}" — детальный экран поста (Лаба 10)
+            // Маршрут "posts" — посты из сети (Retrofit, Лаба 10)
+            composable("posts") {
+                val settingsViewModel = LocalSettingsViewModel.current
+                val newsSource by settingsViewModel.newsSource.collectAsState()
+                com.example.mynotes.data.PostsScreen(
+                    newsSource = newsSource,
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onPostClick = { postId ->
+                        navController.navigate("post_detail/$postId?source=$newsSource")
+                    }
+                )
+            }
+
+            // Маршрут "post_detail/{postId}?source={source}" — детальный экран поста (Лаба 10)
             composable(
-                route = "post_detail/{postId}?lang={lang}",
+                route = "post_detail/{postId}?source={source}",
                 arguments = listOf(
                     navArgument("postId") { type = NavType.IntType },
-                    navArgument("lang") { type = NavType.StringType; defaultValue = "Русский" }
+                    navArgument("source") { type = NavType.StringType; defaultValue = "Космос" }
                 )
             ) { backStackEntry ->
                 val postId = backStackEntry.arguments?.getInt("postId") ?: 1
-                val lang = backStackEntry.arguments?.getString("lang") ?: "Русский"
+                val source = backStackEntry.arguments?.getString("source") ?: "Космос"
                 com.example.mynotes.data.PostDetailScreen(
                     postId = postId,
-                    newsLanguage = lang,
+                    newsSource = source,
                     onBack = {
                         navController.popBackStack()
                     }
@@ -498,7 +510,7 @@ fun AppNavGraph(
                 }
             }
 
-            // Настройки
+            // Маршрут "settings"
             composable("settings") {
                 SettingsScreen(
                     onBack = {

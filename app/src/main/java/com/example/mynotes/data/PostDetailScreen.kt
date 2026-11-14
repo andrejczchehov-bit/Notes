@@ -20,17 +20,17 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.AsyncImage
 
 /**
- * Детальный экран новости с надежными заглушками изображений через Coil (Лабораторная работа №10).
+ * Детальный экран новости с поддержкой источника и загрузкой изображения через Coil (Лабораторная работа №10).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostDetailScreen(
     postId: Int,
-    newsLanguage: String = "Русский",
+    newsSource: String = "Космос",
     onBack: () -> Unit
 ) {
     val viewModel: PostDetailViewModel = viewModel(factory = viewModelFactory {
-        initializer { PostDetailViewModel(postId, newsLanguage) }
+        initializer { PostDetailViewModel(postId, newsSource) }
     })
     val uiState by viewModel.uiState.collectAsState()
 

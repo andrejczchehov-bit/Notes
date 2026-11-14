@@ -9,10 +9,10 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 
 /**
- * PostsViewModel с поддержкой выбора языка новостей (Русский / Английский), кэша и офлайна (Лабораторная работа №10).
+ * PostsViewModel с поддержкой выбора источника новостей (Космос / Россия), кэша и офлайна (Лабораторная работа №10).
  */
 class PostsViewModel(
-    private val initialLanguage: String = "Русский",
+    private val initialSource: String = "Космос",
     private val repository: PostsRepository = PostsRepository()
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PostsUiState>(PostsUiState.Loading)
@@ -28,10 +28,10 @@ class PostsViewModel(
         private set
 
     init {
-        load(language = initialLanguage)
+        load(source = initialSource)
     }
 
-    fun load(isRefresh: Boolean = false, language: String = "Русский") {
+    fun load(isRefresh: Boolean = false, source: String = "Космос") {
         viewModelScope.launch {
             if (isRefresh) {
                 _isRefreshing.value = true
@@ -42,7 +42,7 @@ class PostsViewModel(
                 _isRefreshing.value = true
             }
 
-            repository.getPosts(language)
+            repository.getPosts(source)
                 .onSuccess { posts ->
                     cachedPosts = posts
                     _uiState.value = PostsUiState.Success(posts)
@@ -56,10 +56,10 @@ class PostsViewModel(
                         if (cachedPosts.isNotEmpty()) {
                             _uiState.value = PostsUiState.Success(cachedPosts)
                         } else {
-                            _uiState.value = PostsUiState.Error("Нет подключения к интернету. Показаны кэшированные данные")
+                            _uiState.value = PostsUiState.Error("Нет новостей. Проверьте подключение к сети.")
                         }
                     } else {
-                        _uiState.value = PostsUiState.Error(throwable.localizedMessage ?: "Неизвестная ошибка")
+                        _uiState.value = PostsUiState.Error(throwable.localizedMessage ?: "Нет новостей")
                     }
                 }
         }
