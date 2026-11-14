@@ -1,26 +1,26 @@
 package com.example.mynotes
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
- * Лабораторная работа №3: Компоновка и выравнивание
- * Экран профиля пользователя (ProfileScreen) с адаптивной версткой через BoxWithConstraints.
+ * Обновленный экран профиля (ProfileScreen) по требованиям Лабораторной работы №8.
  */
 @Composable
 fun ProfileScreen(
@@ -30,153 +30,152 @@ fun ProfileScreen(
     completedCount: Int = 12,
     inProgressCount: Int = 5
 ) {
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        // Обертка BoxWithConstraints для получения ограничений по ширине (maxWidth)
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            // maxWidth доступен напрямую как свойство BoxWithConstraintsScope
-            val isTablet = maxWidth > 600.dp
+    var isLoadingSync by remember { mutableStateOf(false) }
+    var showSavedMessage by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
+    AppTheme {
+        Surface(
+            modifier = modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(vertical = 16.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 1, 2, 3. Аватар, Имя и Статус (адаптивная верстка: Row для планшета, Column для телефона)
-                if (isTablet) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        AvatarView()
-                        Spacer(modifier = Modifier.width(24.dp))
-                        Column(
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = userName,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = userStatus,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                // 2. Заголовок «Мой профиль» (headlineMedium)
+                Text(
+                    text = "Мой профиль",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                // 3. Использование ProfileCard (иконка Person, имя, статус, иконка Edit в trailingContent)
+                ProfileCard(
+                    title = userName,
+                    subtitle = userStatus,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingContent = {
+                        IconButton(onClick = {}) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Редактировать",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                } else {
+                    },
+                    onClick = {}
+                )
+
+                // 4. Блок «Статистика» (2-3 строки текста, стиль bodyLarge)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        AvatarView()
-                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = userName,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                            text = "Статистика активности",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = userStatus,
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = "• Выполнено задач: $completedCount",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "• Задач в процессе: $inProgressCount",
+                            style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 4. Два счётчика в Row, разделены Spacer с weight (как подписчики / подписки)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 48.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StatCounter(title = "Выполнено", count = completedCount)
-                    
-                    // Spacer с weight распределяет оставшееся пространство равномерно между счетчиками
-                    Spacer(modifier = Modifier.weight(1f))
-                    
-                    StatCounter(title = "В работе", count = inProgressCount)
+                // 7. Сообщение «Изменения сохранены» с LiveRegionMode.Assertive (появляется на 3 секунды)
+                if (showSavedMessage) {
+                    Text(
+                        text = "Изменения сохранены",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }
+                    )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // 5, 6. Кнопки «Редактировать профиль» и «Настройки» на всю ширину с отступами
+                // 5. Группа кнопок с использованием AppButton
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp) // отступ 8 dp между кнопками
-                ) {
-                    Button(
-                        onClick = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Редактировать профиль")
-                    }
-
-                    OutlinedButton(
-                        onClick = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Настройки")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 7. Нижняя панель из трёх иконок через Arrangement.SpaceEvenly
-                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    IconButton(onClick = {}) {
-                        Icon(imageVector = Icons.Default.Home, contentDescription = "Главная")
-                    }
-                    IconButton(onClick = {}) {
-                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Задачи")
-                    }
-                    IconButton(onClick = {}) {
-                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Настройки")
-                    }
+                    // Большая PRIMARY «Сохранить изменения»
+                    AppButton(
+                        text = "Сохранить изменения",
+                        onClick = {
+                            showSavedMessage = true
+                            coroutineScope.launch {
+                                delay(3000)
+                                showSavedMessage = false
+                            }
+                        },
+                        style = ButtonStyle.PRIMARY,
+                        size = ButtonSize.LARGE,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Средняя SECONDARY «Отмена»
+                    AppButton(
+                        text = "Отмена",
+                        onClick = {},
+                        style = ButtonStyle.SECONDARY,
+                        size = ButtonSize.MEDIUM,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Маленькая OUTLINED «Сбросить»
+                    AppButton(
+                        text = "Сбросить",
+                        onClick = {},
+                        style = ButtonStyle.OUTLINED,
+                        size = ButtonSize.SMALL,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
+
+                // 6. Компонент LoadingButton («Синхронизировать»)
+                LoadingButton(
+                    text = "Синхронизировать",
+                    onClick = {
+                        isLoadingSync = true
+                        coroutineScope.launch {
+                            delay(2000)
+                            isLoadingSync = false
+                        }
+                    },
+                    isLoading = isLoadingSync,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
-    }
-}
-
-@Composable
-fun AvatarView() {
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Person,
-            contentDescription = "Аватар",
-            modifier = Modifier.size(36.dp),
-            tint = MaterialTheme.colorScheme.onPrimaryContainer
-        )
     }
 }
 
@@ -198,20 +197,19 @@ fun StatCounter(title: String, count: Int) {
     }
 }
 
-// --- Превью для телефона (widthDp = 360, меньше 600 dp -> вертикальная верстка) ---
-@Preview(name = "Phone Profile", showBackground = true, widthDp = 360, heightDp = 640)
+// 8. Превью для светлой и темной темы
+@Preview(name = "Light Theme", showBackground = true)
 @Composable
-fun ProfileScreenPhonePreview() {
-    MaterialTheme {
+fun ProfileScreenLightPreview() {
+    AppTheme(darkTheme = false) {
         ProfileScreen()
     }
 }
 
-// --- Превью для планшета (widthDp = 720, больше 600 dp -> горизонтальная верстка) ---
-@Preview(name = "Tablet Profile", showBackground = true, widthDp = 720, heightDp = 900)
+@Preview(name = "Dark Theme", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun ProfileScreenTabletPreview() {
-    MaterialTheme {
+fun ProfileScreenDarkPreview() {
+    AppTheme(darkTheme = true) {
         ProfileScreen()
     }
 }
