@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Лабораторная работа №6, №7 и №10: Навигация в Jetpack Compose
- * Включает HomeScreen, SettingsScreen, CloudSyncScreen, PostsScreen, TaskNotFoundScreen,
+ * Включает HomeScreen, SettingsScreen, CloudSyncScreen, PostsScreen, PostDetailScreen, TaskNotFoundScreen,
  * анимации переходов, передачу JSON-аргументов и Deep Link.
  */
 
@@ -389,6 +389,23 @@ fun AppNavGraph(
             // Маршрут "posts" — посты из сети (Retrofit, Лаба 10)
             composable("posts") {
                 com.example.mynotes.data.PostsScreen(
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onPostClick = { postId ->
+                        navController.navigate("post_detail/$postId")
+                    }
+                )
+            }
+
+            // Маршрут "post_detail/{postId}" — детальный экран поста (Лаба 10)
+            composable(
+                route = "post_detail/{postId}",
+                arguments = listOf(navArgument("postId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val postId = backStackEntry.arguments?.getInt("postId") ?: 1
+                com.example.mynotes.data.PostDetailScreen(
+                    postId = postId,
                     onBack = {
                         navController.popBackStack()
                     }
