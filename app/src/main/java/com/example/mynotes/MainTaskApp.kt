@@ -36,7 +36,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой анимаций, эффектов и оптимизаций (Лабораторная работа №9).
+ * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой анимаций, эффектов и оптимизаций (Лабораторная работа №9 & №10).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +45,8 @@ fun MainTaskAppScreen(
     onNavigateToDetail: (Task) -> Unit,
     onAddNewTask: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToSync: () -> Unit
+    onNavigateToSync: () -> Unit,
+    onNavigateToPosts: () -> Unit
 ) {
     val tasks by viewModel.allTasks.asFlow().collectAsStateWithLifecycle(initialValue = emptyList())
     val currentProfile by viewModel.currentProfile.asFlow().collectAsStateWithLifecycle(initialValue = "Личный")
@@ -108,6 +109,13 @@ fun MainTaskAppScreen(
                     )
                 },
                 actions = {
+                    // Иконка для перехода на экран постов Retrofit (Лаба 10)
+                    IconButton(onClick = onNavigateToPosts) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = "Посты из сети"
+                        )
+                    }
                     // Иконка облака для перехода на экран "sync"
                     IconButton(onClick = onNavigateToSync) {
                         Icon(

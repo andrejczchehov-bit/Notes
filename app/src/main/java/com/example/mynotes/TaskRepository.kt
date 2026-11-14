@@ -4,7 +4,7 @@ import androidx.lifecycle.LiveData
 
 interface ITaskRepository {
     fun getTasksByProfile(profileName: String): LiveData<List<Task>>
-    suspend fun insert(task: Task)
+    suspend fun insert(task: Task): Long
     suspend fun update(task: Task)
     suspend fun delete(task: Task)
     suspend fun getTaskById(id: Long): Task?
@@ -17,8 +17,8 @@ class TaskRepository(private val taskDao: TaskDao) : ITaskRepository {
         return taskDao.getTasksByProfile(profileName)
     }
 
-    override suspend fun insert(task: Task) {
-        taskDao.insert(task)
+    override suspend fun insert(task: Task): Long {
+        return taskDao.insert(task)
     }
 
     override suspend fun update(task: Task) {

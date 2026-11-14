@@ -70,6 +70,12 @@ dependencies {
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 
+    // Retrofit & OkHttp & Coil
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging)
+    implementation(libs.coil.compose)
+
     // Gson for JSON serialization in navigation
     implementation("com.google.code.gson:gson:2.10.1")
 

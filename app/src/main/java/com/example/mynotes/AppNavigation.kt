@@ -28,8 +28,8 @@ import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
 /**
- * Лабораторная работа №6 и №7: Навигация в Jetpack Compose
- * Включает HomeScreen, SettingsScreen, CloudSyncScreen, TaskNotFoundScreen,
+ * Лабораторная работа №6, №7 и №10: Навигация в Jetpack Compose
+ * Включает HomeScreen, SettingsScreen, CloudSyncScreen, PostsScreen, TaskNotFoundScreen,
  * анимации переходов, передачу JSON-аргументов и Deep Link.
  */
 
@@ -77,7 +77,7 @@ fun HomeScreen(
     }
 }
 
-// 2. Расширенный экран настроек (SettingsScreen) с управлением ThemeMode и forceDarkContent (Лаба 8, Задание 3)
+// 2. Расширенный экран настроек (SettingsScreen) с управлением ThemeMode и forceDarkContent
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -370,13 +370,25 @@ fun AppNavGraph(
                     },
                     onNavigateToSync = {
                         navController.navigate("sync")
+                    },
+                    onNavigateToPosts = {
+                        navController.navigate("posts")
                     }
                 )
             }
 
-            // Маршрут "sync" — облачная синхронизация (Лаба 7)
+            // Маршрут "sync" — облачная синхронизация
             composable("sync") {
                 CloudSyncScreen(
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // Маршрут "posts" — посты из сети (Retrofit, Лаба 10)
+            composable("posts") {
+                com.example.mynotes.data.PostsScreen(
                     onBack = {
                         navController.popBackStack()
                     }

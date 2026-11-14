@@ -266,28 +266,39 @@ fun TaskEditScreen(
 
                         isSaving = true
                         coroutineScope.launch {
+                            val db = AppDatabase.getDatabase(context)
                             val finalReminder = if (isReminderEnabled) reminderTime else 0L
-                            val task = Task(
-                                id = if (isExistingTask) taskId else 0L,
-                                title = title,
-                                description = description,
-                                dueDate = dueDate,
-                                priority = priority,
-                                reminderTime = finalReminder,
-                                profileName = currentProfile
-                            )
 
                             if (isExistingTask) {
-                                viewModel.update(task)
+                                val task = Task(
+                                    id = taskId,
+                                    title = title,
+                                    description = description,
+                                    dueDate = dueDate,
+                                    priority = priority,
+                                    reminderTime = finalReminder,
+                                    profileName = currentProfile
+                                )
+                                db.taskDao().update(task)
                                 if (finalReminder > 0) {
                                     NotificationWorker.schedule(context, task)
                                 } else {
                                     NotificationWorker.cancel(context, task.id)
                                 }
                             } else {
-                                viewModel.insert(task)
+                                val task = Task(
+                                    id = 0L,
+                                    title = title,
+                                    description = description,
+                                    dueDate = dueDate,
+                                    priority = priority,
+                                    reminderTime = finalReminder,
+                                    profileName = currentProfile
+                                )
+                                val generatedId = db.taskDao().insert(task)
+                                val insertedTask = task.copy(id = generatedId)
                                 if (finalReminder > 0) {
-                                    NotificationWorker.schedule(context, task)
+                                    NotificationWorker.schedule(context, insertedTask)
                                 }
                             }
 
