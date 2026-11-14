@@ -201,7 +201,7 @@ fun StatCounter(title: String, count: Int) {
 @Preview(name = "Light Theme", showBackground = true)
 @Composable
 fun ProfileScreenLightPreview() {
-    AppTheme(darkTheme = false) {
+    AppTheme(themeMode = ThemeMode.LIGHT) {
         ProfileScreen()
     }
 }
@@ -209,7 +209,7 @@ fun ProfileScreenLightPreview() {
 @Preview(name = "Dark Theme", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun ProfileScreenDarkPreview() {
-    AppTheme(darkTheme = true) {
+    AppTheme(themeMode = ThemeMode.DARK) {
         ProfileScreen()
     }
 }

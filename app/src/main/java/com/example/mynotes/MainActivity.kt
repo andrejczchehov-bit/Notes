@@ -13,10 +13,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val taskViewModel: TaskViewModel = viewModel()
             val settingsViewModel: SettingsViewModel = viewModel()
-            val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
+            val themeMode by settingsViewModel.themeMode.collectAsState()
+            val forceDark by settingsViewModel.forceDarkContent.collectAsState()
 
             CompositionLocalProvider(LocalSettingsViewModel provides settingsViewModel) {
-                AppTheme(darkTheme = isDarkTheme) {
+                AppTheme(themeMode = themeMode, forceDarkContent = forceDark) {
                     AppNavGraph(
                         viewModel = taskViewModel,
                         settingsViewModel = settingsViewModel

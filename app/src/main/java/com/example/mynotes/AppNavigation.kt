@@ -12,7 +12,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -78,7 +77,7 @@ fun HomeScreen(
     }
 }
 
-// 2. Расширенный экран настроек (SettingsScreen)
+// 2. Расширенный экран настроек (SettingsScreen) с управлением ThemeMode и forceDarkContent (Лаба 8, Задание 3)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -88,7 +87,8 @@ fun SettingsScreen(
     val settingsViewModel = LocalSettingsViewModel.current
     val coroutineScope = rememberCoroutineScope()
 
-    val isDarkMode by settingsViewModel.isDarkTheme.collectAsState()
+    val themeMode by settingsViewModel.themeMode.collectAsState()
+    val forceDark by settingsViewModel.forceDarkContent.collectAsState()
     val showCompleted by settingsViewModel.showCompletedTasks.collectAsState()
     val soundEnabled by settingsViewModel.soundEnabled.collectAsState()
     val vibrationEnabled by settingsViewModel.vibrationEnabled.collectAsState()
@@ -122,18 +122,25 @@ fun SettingsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Режим темы:", fontWeight = FontWeight.Medium)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Settings, contentDescription = null)
-                            Text("Тёмная тема", fontWeight = FontWeight.Medium)
-                        }
-                        Switch(
-                            checked = isDarkMode,
-                            onCheckedChange = { settingsViewModel.toggleTheme(it) }
+                        FilterChip(
+                            selected = themeMode == ThemeMode.SYSTEM,
+                            onClick = { settingsViewModel.setThemeMode(ThemeMode.SYSTEM) },
+                            label = { Text("Системная") }
+                        )
+                        FilterChip(
+                            selected = themeMode == ThemeMode.LIGHT,
+                            onClick = { settingsViewModel.setThemeMode(ThemeMode.LIGHT) },
+                            label = { Text("Светлая") }
+                        )
+                        FilterChip(
+                            selected = themeMode == ThemeMode.DARK,
+                            onClick = { settingsViewModel.setThemeMode(ThemeMode.DARK) },
+                            label = { Text("Тёмная") }
                         )
                     }
 
@@ -144,10 +151,21 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null)
-                            Text("Показывать выполненные задачи", fontWeight = FontWeight.Medium)
-                        }
+                        Text("Принудительно тёмная тема", fontWeight = FontWeight.Medium)
+                        Switch(
+                            checked = forceDark,
+                            onCheckedChange = { settingsViewModel.setForceDarkContent(it) }
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Показывать выполненные задачи", fontWeight = FontWeight.Medium)
                         Switch(
                             checked = showCompleted,
                             onCheckedChange = { settingsViewModel.toggleShowCompleted(it) }
@@ -235,7 +253,6 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Версия 1.0.0", fontWeight = FontWeight.Medium)
-                    Text("Разработано в рамках лабораторных работ", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
