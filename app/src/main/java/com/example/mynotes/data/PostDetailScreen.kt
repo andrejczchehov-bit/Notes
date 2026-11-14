@@ -2,16 +2,16 @@ package com.example.mynotes.data
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -20,7 +20,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.AsyncImage
 
 /**
- * Детальный экран поста с загрузкой аватара через Coil (Лабораторная работа №10).
+ * Детальный экран новости с загрузкой изображения через Coil (Лабораторная работа №10).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,10 +36,10 @@ fun PostDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Детали поста #$postId") },
+                title = { Text("Детали новости") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Назад")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 }
             )
@@ -86,13 +86,15 @@ fun PostDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Загрузка картинки через Coil (AsyncImage)
+                        // Загрузка реального изображения через Coil (AsyncImage) с использованием post.imageUrl
                         AsyncImage(
-                            model = "https://picsum.photos/200",
-                            contentDescription = "Автор поста",
+                            model = state.post.imageUrl,
+                            contentDescription = "Иллюстрация к новости",
                             modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .clip(MaterialTheme.shapes.medium),
+                            contentScale = ContentScale.Crop
                         )
 
                         Text(

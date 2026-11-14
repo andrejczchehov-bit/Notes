@@ -5,12 +5,12 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
- * Retrofit API интерфейс для получения постов (Лабораторная работа №10).
+ * Retrofit API интерфейс для получения новостей из Spaceflight News API v4 (Лабораторная работа №10).
  */
 interface PostsApi {
-    @GET("posts")
-    suspend fun getPosts(@Query("_limit") limit: Int = 20): List<Post>
+    @GET("articles/")
+    suspend fun getPosts(@Query("limit") limit: Int = 20): NewsResponse
 
-    @GET("posts/{id}")
+    @GET("articles/{id}/")
     suspend fun getPost(@Path("id") id: Int): Post
 }

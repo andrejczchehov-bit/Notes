@@ -9,18 +9,19 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 
 /**
- * Экран отображения постов с поддержкой PullToRefreshBox из Material 3,
+ * Экран отображения новостей (Spaceflight News API) с поддержкой PullToRefreshBox,
  * офлайн-бейджа и кэширования (Лабораторная работа №10, PRO-уровень).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,7 +43,7 @@ fun PostsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Посты из сети")
+                        Text("Новости науки и космоса")
                         if (isOffline) {
                             Surface(
                                 color = MaterialTheme.colorScheme.error,
@@ -72,7 +73,7 @@ fun PostsScreen(
             )
         }
     ) { innerPadding ->
-        PullToRefreshBox(
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { viewModel.load(isRefresh = true) },
             modifier = Modifier
@@ -113,7 +114,7 @@ fun PostsScreen(
                     }
                     is PostsUiState.Success -> {
                         if (state.posts.isEmpty()) {
-                            Text("Нет доступных постов", style = MaterialTheme.typography.bodyLarge)
+                            Text("Нет доступных новостей", style = MaterialTheme.typography.bodyLarge)
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
@@ -126,22 +127,40 @@ fun PostsScreen(
                                             .clickable { onPostClick(post.id) },
                                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                     ) {
-                                        Column(
-                                            modifier = Modifier.padding(16.dp),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
-                                            Text(
-                                                text = "#${post.id} ${post.title}",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold
+                                            AsyncImage(
+                                                model = post.imageUrl,
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .size(64.dp)
+                                                    .clip(MaterialTheme.shapes.small)
                                             )
-                                            Text(
-                                                text = post.body.lines().firstOrNull() ?: post.body,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                            Column(
+                                                modifier = Modifier.weight(1f),
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                // Требование: без решётки перед ID, просто title
+                                                Text(
+                                                    text = post.title,
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = post.body,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }

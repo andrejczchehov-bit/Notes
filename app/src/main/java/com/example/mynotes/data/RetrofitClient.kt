@@ -7,10 +7,10 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 /**
- * Клиент Retrofit с настроенными таймаутами и логированием (Лабораторная работа №10).
+ * Клиент Retrofit для Spaceflight News API v4 с настроенными таймаутами и логированием (Лабораторная работа №10).
  */
 object RetrofitClient {
-    private const val BASE_URL = "https://jsonplaceholder.typicode.com/"
+    private const val BASE_URL = "https://api.spaceflightnewsapi.net/v4/"
 
     val api: PostsApi by lazy {
         val logging = HttpLoggingInterceptor().apply {
