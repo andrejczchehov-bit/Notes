@@ -32,7 +32,8 @@ class FirstFragment : Fragment() {
                         onAddNewTask = {},
                         onNavigateToSettings = {},
                         onNavigateToSync = {},
-                        onNavigateToPosts = {}
+                        onNavigateToPosts = {},
+                        onNavigateToNotes = {}
                     )
                 }
             }

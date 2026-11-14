@@ -1,6 +1,8 @@
 package com.example.mynotes.data
 
 import android.app.Application
+import android.net.Uri
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +20,7 @@ sealed interface NotesUiState {
 }
 
 /**
- * ViewModel для управления состоянием и операциями с заметками (Лабораторная работа №11).
+ * ViewModel для управления состоянием, файлами, экспортом и импортом через SAF (Лабораторная работа №11).
  */
 class NotesViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = NotesFileRepository(application.filesDir)
@@ -85,6 +87,40 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                 .onFailure { error ->
                     _uiState.value = NotesUiState.Error(error.localizedMessage ?: "Ошибка импорта заметок")
                 }
+        }
+    }
+
+    // SAF Экспорт (Лабораторная работа №11)
+    fun exportTo(uri: Uri, context: android.content.Context) {
+        viewModelScope.launch {
+            val notes = (_uiState.value as? NotesUiState.Success)?.notes.orEmpty()
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    val jsonString = NotesJson.encode(notes)
+                    outputStream.write(jsonString.toByteArray())
+                }
+            }.onSuccess {
+                Toast.makeText(context, "Экспорт выполнен успешно", Toast.LENGTH_SHORT).show()
+            }.onFailure { e ->
+                Toast.makeText(context, "Ошибка экспорта: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // SAF Импорт (Лабораторная работа №11)
+    fun importFrom(uri: Uri, context: android.content.Context) {
+        viewModelScope.launch {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val jsonString = inputStream.bufferedReader().use { it.readText() }
+                    val notes = NotesJson.decode(jsonString)
+                    importNotes(notes)
+                }
+            }.onSuccess {
+                Toast.makeText(context, "Импорт выполнен успешно", Toast.LENGTH_SHORT).show()
+            }.onFailure { e ->
+                Toast.makeText(context, "Ошибка импорта: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }

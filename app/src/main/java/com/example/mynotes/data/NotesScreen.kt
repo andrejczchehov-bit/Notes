@@ -1,6 +1,7 @@
 package com.example.mynotes.data
 
-import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,17 +25,36 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Экран управления заметками с сохранением в локальный файл (Лабораторная работа №11).
+ * Экран управления заметками с поддержкой SAF экспорта/импорта (Лабораторная работа №11).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(
     onBack: () -> Unit,
+    onNoteClick: (Long) -> Unit,
+    onAddNote: () -> Unit,
     viewModel: NotesViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
-    var showAddDialog by remember { mutableStateOf(false) }
+
+    // SAF Экспорт лаунчер
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportTo(uri, context)
+        }
+    }
+
+    // SAF Импорт лаунчер
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.importFrom(uri, context)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -46,22 +66,15 @@ fun NotesScreen(
                     }
                 },
                 actions = {
-                    // Иконка экспорта
+                    // Иконка экспорта через SAF
                     IconButton(onClick = {
-                        Toast.makeText(context, "Заметки экспортированы в notes.json", Toast.LENGTH_SHORT).show()
+                        exportLauncher.launch("notes-export.json")
                     }) {
                         Icon(imageVector = Icons.Default.Upload, contentDescription = "Экспорт")
                     }
-                    // Иконка импорта
+                    // Иконка импорта через SAF
                     IconButton(onClick = {
-                        val demoNote = Note(
-                            id = System.currentTimeMillis(),
-                            title = "Импортированная заметка",
-                            body = "Это тестовая заметка, добавленная через импорт файлов.",
-                            updatedAt = System.currentTimeMillis()
-                        )
-                        viewModel.saveNote(demoNote)
-                        Toast.makeText(context, "Заметка импортирована", Toast.LENGTH_SHORT).show()
+                        importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
                     }) {
                         Icon(imageVector = Icons.Default.Download, contentDescription = "Импорт")
                     }
@@ -70,7 +83,7 @@ fun NotesScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = onAddNote,
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Добавить заметку")
@@ -128,8 +141,7 @@ fun NotesScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            viewModel.deleteNote(note.id)
-                                            Toast.makeText(context, "Заметка удалена", Toast.LENGTH_SHORT).show()
+                                            onNoteClick(note.id)
                                         },
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
@@ -162,58 +174,5 @@ fun NotesScreen(
                 }
             }
         }
-    }
-
-    // Диалог создания новой заметки
-    if (showAddDialog) {
-        var title by remember { mutableStateOf("") }
-        var body by remember { mutableStateOf("") }
-
-        AlertDialog(
-            onDismissRequest = { showAddDialog = false },
-            title = { Text("Новая заметка") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("Заголовок") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = body,
-                        onValueChange = { body = it },
-                        label = { Text("Текст заметки") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (title.isNotBlank()) {
-                            val newNote = Note(
-                                id = System.currentTimeMillis(),
-                                title = title,
-                                body = body,
-                                updatedAt = System.currentTimeMillis()
-                            )
-                            viewModel.saveNote(newNote)
-                            showAddDialog = false
-                            Toast.makeText(context, "Заметка сохранена", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                ) {
-                    Text("Сохранить")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddDialog = false }) {
-                    Text("Отмена")
-                }
-            }
-        )
     }
 }

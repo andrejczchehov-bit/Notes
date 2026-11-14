@@ -26,10 +26,12 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavDestination.Companion.hierarchy
 
 /**
  * Лабораторная работа №6, №7, №10 и №11: Навигация в Jetpack Compose
- * Включает HomeScreen, SettingsScreen, CloudSyncScreen, PostsScreen, PostDetailScreen, NotesScreen, TaskNotFoundScreen,
+ * Включает HomeScreen, SettingsScreen, CloudSyncScreen, PostsScreen, PostDetailScreen, NotesScreen, NoteEditScreen, TaskNotFoundScreen,
  * анимации переходов, передачу JSON-аргументов и Deep Link.
  */
 
@@ -355,168 +357,143 @@ fun AppNavGraph(
     settingsViewModel: SettingsViewModel
 ) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     CompositionLocalProvider(LocalSettingsViewModel provides settingsViewModel) {
-        NavHost(
-            navController = navController,
-            startDestination = "home",
-            enterTransition = { fadeIn(animationSpec = tween(300)) + slideInHorizontally(initialOffsetX = { 300 }) },
-            exitTransition = { fadeOut(animationSpec = tween(300)) },
-            popEnterTransition = { fadeIn(animationSpec = tween(300)) },
-            popExitTransition = { fadeOut(animationSpec = tween(300)) + slideOutHorizontally(targetOffsetX = { 300 }) }
-        ) {
-            // Маршрут "home"
-            composable("home") {
-                HomeScreen(
-                    onNavigateToList = {
-                        navController.navigate("list")
-                    }
-                )
-            }
-
-            // Маршрут "list" (передает сложный аргумент - JSON задачи через Uri.encode)
-            composable("list") {
-                MainTaskAppScreen(
-                    viewModel = viewModel,
-                    onNavigateToDetail = { task ->
-                        val json = Uri.encode(Gson().toJson(task))
-                        navController.navigate("details/json_$json")
-                    },
-                    onAddNewTask = {
-                        navController.navigate("details/json_-1")
-                    },
-                    onNavigateToSettings = {
-                        navController.navigate("settings")
-                    },
-                    onNavigateToSync = {
-                        navController.navigate("sync")
-                    },
-                    onNavigateToPosts = {
-                        navController.navigate("posts")
-                    },
-                    onNavigateToNotes = {
-                        navController.navigate("notes")
-                    }
-                )
-            }
-
-            // Маршрут "sync" — облачная синхронизация
-            composable("sync") {
-                CloudSyncScreen(
-                    onBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-
-            // Маршрут "notes" — управление заметками (Лаба 11)
-            composable("notes") {
-                com.example.mynotes.data.NotesScreen(
-                    onBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-
-            // Маршрут "posts" — посты из сети (Retrofit, Лаба 10)
-            composable("posts") {
-                val settingsViewModel = LocalSettingsViewModel.current
-                val newsSource by settingsViewModel.newsSource.collectAsState()
-                com.example.mynotes.data.PostsScreen(
-                    newsSource = newsSource,
-                    onBack = {
-                        navController.popBackStack()
-                    },
-                    onPostClick = { postId ->
-                        navController.navigate("post_detail/$postId?source=$newsSource")
-                    }
-                )
-            }
-
-            // Маршрут "post_detail/{postId}?source={source}" — детальный экран поста (Лаба 10)
-            composable(
-                route = "post_detail/{postId}?source={source}",
-                arguments = listOf(
-                    navArgument("postId") { type = NavType.IntType },
-                    navArgument("source") { type = NavType.StringType; defaultValue = "Космос" }
-                )
-            ) { backStackEntry ->
-                val postId = backStackEntry.arguments?.getInt("postId") ?: 1
-                val source = backStackEntry.arguments?.getString("source") ?: "Космос"
-                com.example.mynotes.data.PostDetailScreen(
-                    postId = postId,
-                    newsSource = source,
-                    onBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-
-            // Маршрут "details/{taskArg}" с поддержкой Deep Link и JSON
-            composable(
-                route = "details/{taskArg}",
-                arguments = listOf(navArgument("taskArg") { type = NavType.StringType }),
-                deepLinks = listOf(navDeepLink { uriPattern = "app://mynotes/details/{taskArg}" })
-            ) { backStackEntry ->
-                val taskArg = backStackEntry.arguments?.getString("taskArg") ?: "-1"
-
-                val validTaskId = remember(taskArg) {
-                    if (taskArg.startsWith("json_")) {
-                        val jsonStr = taskArg.removePrefix("json_")
-                        if (jsonStr == "-1") {
-                            -1L
-                        } else {
-                            try {
-                                val decodedJson = Uri.decode(jsonStr)
-                                val task = Gson().fromJson(decodedJson, Task::class.java)
-                                task?.id ?: -999L
-                            } catch (e: Exception) {
-                                -999L
-                            }
-                        }
-                    } else {
-                        taskArg.toLongOrNull() ?: -999L
-                    }
-                }
-
-                val context = LocalContext.current
-                var resolvedTaskId by remember { mutableStateOf<Long?>(null) }
-
-                LaunchedEffect(validTaskId) {
-                    if (validTaskId == -1L || validTaskId == -999L) {
-                        resolvedTaskId = validTaskId
-                    } else {
-                        val found = AppDatabase.getDatabase(context).taskDao().getTaskById(validTaskId)
-                        resolvedTaskId = if (found != null) validTaskId else -999L
-                    }
-                }
-
-                when (resolvedTaskId) {
-                    null -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    -999L -> {
-                        TaskNotFoundScreen(onBack = { navController.popBackStack() })
-                    }
-                    else -> {
-                        TaskEditScreen(
-                            taskId = resolvedTaskId!!,
-                            viewModel = viewModel,
-                            onBack = { navController.popBackStack() }
+        Scaffold(
+            bottomBar = {
+                // Показываем нижнюю панель только на основных экранах
+                if (currentRoute in listOf("list", "notes", "settings", "posts")) {
+                    NavigationBar {
+                        NavigationBarItem(
+                            selected = currentRoute == "list",
+                            onClick = { navController.navigate("list") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                            icon = { Icon(Icons.Default.CheckCircle, contentDescription = "Задачи") },
+                            label = { Text("Задачи") }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute == "notes",
+                            onClick = { navController.navigate("notes") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                            icon = { Icon(Icons.Default.Description, contentDescription = "Заметки") },
+                            label = { Text("Заметки") }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute == "posts",
+                            onClick = { navController.navigate("posts") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                            icon = { Icon(Icons.Default.Language, contentDescription = "Новости") },
+                            label = { Text("Новости") }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute == "settings",
+                            onClick = { navController.navigate("settings") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                            icon = { Icon(Icons.Default.Settings, contentDescription = "Настройки") },
+                            label = { Text("Настройки") }
                         )
                     }
                 }
             }
-
-            // Маршрут "settings"
-            composable("settings") {
-                SettingsScreen(
-                    onBack = {
-                        navController.popBackStack()
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = "home",
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = { fadeIn(animationSpec = tween(300)) + slideInHorizontally(initialOffsetX = { 300 }) },
+                exitTransition = { fadeOut(animationSpec = tween(300)) },
+                popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+                popExitTransition = { fadeOut(animationSpec = tween(300)) + slideOutHorizontally(targetOffsetX = { 300 }) }
+            ) {
+                composable("home") {
+                    HomeScreen(onNavigateToList = { navController.navigate("list") })
+                }
+                composable("list") {
+                    MainTaskAppScreen(
+                        viewModel = viewModel,
+                        onNavigateToDetail = { task ->
+                            val json = Uri.encode(Gson().toJson(task))
+                            navController.navigate("details/json_$json")
+                        },
+                        onAddNewTask = { navController.navigate("details/json_-1") },
+                        onNavigateToSettings = { navController.navigate("settings") },
+                        onNavigateToSync = { navController.navigate("sync") },
+                        onNavigateToPosts = { navController.navigate("posts") },
+                        onNavigateToNotes = { navController.navigate("notes") }
+                    )
+                }
+                composable("sync") {
+                    CloudSyncScreen(onBack = { navController.popBackStack() })
+                }
+                composable("notes") {
+                    com.example.mynotes.data.NotesScreen(
+                        onBack = { navController.popBackStack() },
+                        onNoteClick = { noteId -> navController.navigate("note_edit/$noteId") },
+                        onAddNote = { navController.navigate("note_edit/-1") }
+                    )
+                }
+                composable(
+                    route = "note_edit/{noteId}",
+                    arguments = listOf(navArgument("noteId") { type = NavType.LongType })
+                ) { backStackEntry ->
+                    val noteId = backStackEntry.arguments?.getLong("noteId") ?: -1L
+                    com.example.mynotes.data.NoteEditScreen(noteId = noteId, onBack = { navController.popBackStack() })
+                }
+                composable("posts") {
+                    val settingsViewModel = LocalSettingsViewModel.current
+                    val newsSource by settingsViewModel.newsSource.collectAsState()
+                    com.example.mynotes.data.PostsScreen(
+                        newsSource = newsSource,
+                        onBack = { navController.popBackStack() },
+                        onPostClick = { postId -> navController.navigate("post_detail/$postId?source=$newsSource") }
+                    )
+                }
+                composable(
+                    route = "post_detail/{postId}?source={source}",
+                    arguments = listOf(
+                        navArgument("postId") { type = NavType.IntType },
+                        navArgument("source") { type = NavType.StringType; defaultValue = "Космос" }
+                    )
+                ) { backStackEntry ->
+                    val postId = backStackEntry.arguments?.getInt("postId") ?: 1
+                    val source = backStackEntry.arguments?.getString("source") ?: "Космос"
+                    com.example.mynotes.data.PostDetailScreen(postId = postId, newsSource = source, onBack = { navController.popBackStack() })
+                }
+                composable(
+                    route = "details/{taskArg}",
+                    arguments = listOf(navArgument("taskArg") { type = NavType.StringType }),
+                    deepLinks = listOf(navDeepLink { uriPattern = "app://mynotes/details/{taskArg}" })
+                ) { backStackEntry ->
+                    val taskArg = backStackEntry.arguments?.getString("taskArg") ?: "-1"
+                    val validTaskId = remember(taskArg) {
+                        if (taskArg.startsWith("json_")) {
+                            val jsonStr = taskArg.removePrefix("json_")
+                            if (jsonStr == "-1") -1L else {
+                                try {
+                                    val decodedJson = Uri.decode(jsonStr)
+                                    val task = Gson().fromJson(decodedJson, Task::class.java)
+                                    task?.id ?: -999L
+                                } catch (e: Exception) { -999L }
+                            }
+                        } else { taskArg.toLongOrNull() ?: -999L }
                     }
-                )
+                    val context = LocalContext.current
+                    var resolvedTaskId by remember { mutableStateOf<Long?>(null) }
+                    LaunchedEffect(validTaskId) {
+                        if (validTaskId == -1L || validTaskId == -999L) {
+                            resolvedTaskId = validTaskId
+                        } else {
+                            val found = AppDatabase.getDatabase(context).taskDao().getTaskById(validTaskId)
+                            resolvedTaskId = if (found != null) validTaskId else -999L
+                        }
+                    }
+                    when (resolvedTaskId) {
+                        null -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                        -999L -> TaskNotFoundScreen(onBack = { navController.popBackStack() })
+                        else -> TaskEditScreen(taskId = resolvedTaskId!!, viewModel = viewModel, onBack = { navController.popBackStack() })
+                    }
+                }
+                composable("settings") {
+                    SettingsScreen(onBack = { navController.popBackStack() })
+                }
             }
         }
     }
