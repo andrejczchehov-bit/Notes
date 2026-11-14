@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
- * Экран отображения постов с поддержкой кнопки обновления,
+ * Экран отображения постов с поддержкой PullToRefreshBox из Material 3,
  * офлайн-бейджа и кэширования (Лабораторная работа №10, PRO-уровень).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,15 +72,13 @@ fun PostsScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.load(isRefresh = true) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (isRefreshing) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-
             Box(
                 modifier = Modifier
                     .fillMaxSize()
