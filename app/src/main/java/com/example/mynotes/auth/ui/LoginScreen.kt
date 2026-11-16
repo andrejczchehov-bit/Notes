@@ -17,7 +17,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onNavigateTo2FA: () -> Unit
 ) {
     val context = LocalContext.current
     val authRepo = remember { AuthRepository(context) }
@@ -60,7 +61,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = login,
                 onValueChange = { login = it },
-                label = { Text("Логин (admin)") },
+                label = { Text("Логин (admin или любой другой)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -69,7 +70,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Пароль (1234)") },
+                label = { Text("Пароль (1234 для admin)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation()
@@ -101,19 +102,22 @@ fun LoginScreen(
                     coroutineScope.launch {
                         isLoading = true
                         errorMessage = null
-                        when (val result = authRepo.login(login, password)) {
+                        when (authRepo.login(login, password)) {
                             is AuthResult.Success -> {
                                 isLoading = false
                                 onLoginSuccess()
                             }
+                            is AuthResult.RequiresTwoFactor -> {
+                                isLoading = false
+                                onNavigateTo2FA()
+                            }
                             is AuthResult.AuthFailed -> {
                                 isLoading = false
-                                errorMessage = result.message
+                                errorMessage = "Неверный пароль"
                             }
                             is AuthResult.AuthLocked -> {
                                 isLoading = false
-                                secondsRemaining = result.secondsRemaining
-                                errorMessage = result.message
+                                errorMessage = "Вход заблокирован"
                             }
                         }
                     }

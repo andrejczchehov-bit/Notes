@@ -6,6 +6,7 @@ import kotlinx.coroutines.delay
 
 sealed interface AuthResult {
     data class Success(val accessToken: String, val refreshToken: String) : AuthResult
+    data class RequiresTwoFactor(val login: String) : AuthResult
     data class AuthFailed(val attemptsLeft: Int, val message: String) : AuthResult
     data class AuthLocked(val secondsRemaining: Int, val message: String) : AuthResult
 }
@@ -32,23 +33,27 @@ class AuthRepository(context: Context) {
 
         if (login == "admin" && pass == "1234") {
             prefs.edit().putInt("failed_attempts", 0).remove("lock_until").apply()
-            AuthAudit.logEvent(appContext, "LOGIN_OK", "Успешный вход пользователя: $login")
+            AuthAudit.logEvent(appContext, "LOGIN_OK", "Успешный вход администратора: $login")
             return AuthResult.Success("access_token_mock_123", "refresh_token_mock_789")
         } else {
-            var attempts = prefs.getInt("failed_attempts", 0) + 1
-            val attemptsLeft = MAX_ATTEMPTS - attempts
+            // Any other login (not admin) triggers 2FA
+            val code = (100000..999999).random().toString()
+            prefs.edit().putString("pending_2fa_code", code).putString("pending_2fa_login", login).apply()
+            NotificationHelper.sendTwoFactorCodeNotification(appContext, code)
+            AuthAudit.logEvent(appContext, "2FA_SENT", "Отправлен код подтверждения для $login")
+            return AuthResult.RequiresTwoFactor(login)
+        }
+    }
 
-            AuthAudit.logEvent(appContext, "LOGIN_FAIL", "Неверный логин или пароль. Попытка $attempts из $MAX_ATTEMPTS")
-
-            if (attempts >= MAX_ATTEMPTS) {
-                val newLockUntil = System.currentTimeMillis() + LOCK_DURATION_MS
-                prefs.edit().putLong("lock_until", newLockUntil).putInt("failed_attempts", 0).apply()
-                AuthAudit.logEvent(appContext, "LOCK", "Превышено число попыток ($MAX_ATTEMPTS). Блокировка на 5 минут.")
-                return AuthResult.AuthLocked(300, "Превышено число попыток входа. Вход заблокирован на 5 минут.")
-            } else {
-                prefs.edit().putInt("failed_attempts", attempts).apply()
-                return AuthResult.AuthFailed(attemptsLeft, "Неверный пароль, осталось попыток: $attemptsLeft")
-            }
+    fun verifyTwoFactorCode(inputCode: String): AuthResult {
+        val savedCode = prefs.getString("pending_2fa_code", null)
+        if (savedCode != null && savedCode == inputCode.trim()) {
+            prefs.edit().remove("pending_2fa_code").remove("pending_2fa_login").putInt("failed_attempts", 0).remove("lock_until").apply()
+            AuthAudit.logEvent(appContext, "LOGIN_OK", "Успешный вход через 2FA")
+            return AuthResult.Success("access_token_mock_123", "refresh_token_mock_789")
+        } else {
+            AuthAudit.logEvent(appContext, "LOGIN_FAIL", "Неверный 2FA код")
+            return AuthResult.AuthFailed(3, "Неверный код подтверждения")
         }
     }
 

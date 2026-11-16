@@ -479,11 +479,28 @@ fun AppNavGraph(
                 popExitTransition = { fadeOut(animationSpec = tween(300)) + slideOutHorizontally(targetOffsetX = { 300 }) }
             ) {
                 composable("login") {
-                    LoginScreen(onLoginSuccess = {
-                        navController.navigate("pin_setup") {
-                            popUpTo("login") { inclusive = true }
+                    LoginScreen(
+                        onLoginSuccess = {
+                            navController.navigate("pin_setup") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        },
+                        onNavigateTo2FA = {
+                            navController.navigate("verify_2fa")
                         }
-                    })
+                    )
+                }
+                composable("verify_2fa") {
+                    CodeVerificationScreen(
+                        onVerificationSuccess = {
+                            navController.navigate("pin_setup") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        },
+                        onBackToLogin = {
+                            navController.popBackStack()
+                        }
+                    )
                 }
                 composable("pin_setup") {
                     PinSetupScreen(onPinCreated = {

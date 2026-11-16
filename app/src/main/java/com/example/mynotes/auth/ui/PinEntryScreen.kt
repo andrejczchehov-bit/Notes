@@ -8,7 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.mynotes.auth.data.PinHelper
 
@@ -86,46 +85,60 @@ fun PinEntryScreen(
                         Text("Назад к вводу PIN")
                     }
                 } else {
-                    Text(
-                        text = "Введите 4-значный PIN",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    OutlinedTextField(
-                        value = enteredPin,
-                        onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) enteredPin = it },
-                        label = { Text("PIN") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation()
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (errorMessage != null) {
-                        Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    Button(
-                        onClick = {
-                            val inputHash = PinHelper.hashPin(enteredPin)
-                            if (inputHash == savedPinHash) {
-                                onPinCorrect()
-                            } else {
-                                errorMessage = "Неверный PIN"
-                                enteredPin = ""
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = enteredPin.length == 4
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxHeight().fillMaxWidth()
                     ) {
-                        Text("Войти")
-                    }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(top = 16.dp)
+                        ) {
+                            Text(
+                                text = "Введите 4-значный PIN",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            PinDotsIndicator(pinLength = enteredPin.length)
 
-                    TextButton(onClick = { isRecoveryMode = true; errorMessage = null }) {
-                        Text("Забыли PIN? Восстановить")
+                            if (errorMessage != null) {
+                                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            NumericKeypad(
+                                onDigitClick = { digit ->
+                                    errorMessage = null
+                                    if (enteredPin.length < 4) {
+                                        enteredPin += digit
+                                        if (enteredPin.length == 4) {
+                                            val inputHash = PinHelper.hashPin(enteredPin)
+                                            if (inputHash == savedPinHash) {
+                                                onPinCorrect()
+                                            } else {
+                                                errorMessage = "Неверный PIN"
+                                                enteredPin = ""
+                                            }
+                                        }
+                                    }
+                                },
+                                onDeleteClick = {
+                                    errorMessage = null
+                                    if (enteredPin.isNotEmpty()) {
+                                        enteredPin = enteredPin.dropLast(1)
+                                    }
+                                }
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                            TextButton(onClick = { isRecoveryMode = true; errorMessage = null }) {
+                                Text("Забыли PIN? Восстановить")
+                            }
+                        }
                     }
                 }
             }
