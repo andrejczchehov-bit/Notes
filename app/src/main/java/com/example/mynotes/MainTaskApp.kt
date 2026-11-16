@@ -37,6 +37,7 @@ import java.util.*
 
 /**
  * Единый продуктовый экран задач (MainTaskAppScreen) с поддержкой анимаций, эффектов и оптимизаций (Лабораторная работа №9, №10 & №11).
+ * Верхняя панель содержит заголовок, кнопку синхронизации и кнопку профиля.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,10 +45,7 @@ fun MainTaskAppScreen(
     viewModel: TaskViewModel,
     onNavigateToDetail: (Task) -> Unit,
     onAddNewTask: () -> Unit,
-    onNavigateToSettings: () -> Unit,
-    onNavigateToSync: () -> Unit,
-    onNavigateToPosts: () -> Unit,
-    onNavigateToNotes: () -> Unit
+    onNavigateToSync: () -> Unit
 ) {
     val tasks by viewModel.allTasks.asFlow().collectAsStateWithLifecycle(initialValue = emptyList())
     val currentProfile by viewModel.currentProfile.asFlow().collectAsStateWithLifecycle(initialValue = "Личный")
@@ -110,35 +108,14 @@ fun MainTaskAppScreen(
                     )
                 },
                 actions = {
-                    // Иконка заметок для перехода на экран "notes" (Лаба 11)
-                    IconButton(onClick = onNavigateToNotes) {
-                        Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = "Заметки"
-                        )
-                    }
-                    // Иконка для перехода на экран постов Retrofit (Лаба 10)
-                    IconButton(onClick = onNavigateToPosts) {
-                        Icon(
-                            imageVector = Icons.Default.Language,
-                            contentDescription = "Посты из сети"
-                        )
-                    }
-                    // Иконка облака для перехода на экран "sync"
+                    // Иконка облака для перехода на синхронизацию
                     IconButton(onClick = onNavigateToSync) {
                         Icon(
                             imageVector = Icons.Default.Cloud,
                             contentDescription = "Синхронизация"
                         )
                     }
-                    // Иконка настроек для перехода на экран "settings"
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Настройки"
-                        )
-                    }
-                    // Кнопка профиля
+                    // Иконка профиля для открытия диалога профиля
                     IconButton(onClick = { showProfileDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Person,
@@ -151,7 +128,9 @@ fun MainTaskAppScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddNewTask,
-                modifier = Modifier.testTag(TestTags.addTask),
+                modifier = Modifier
+                    .testTag(TestTags.addTask)
+                    .padding(bottom = 8.dp),
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Добавить задачу")
@@ -577,7 +556,7 @@ fun ExpandableTaskCardView(
                 Column(modifier = Modifier.padding(top = 8.dp)) {
                     HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
                     Text(
-                        text = if (task.description.isNotBlank()) task.description else "Нет описаниия",
+                        text = if (task.description.isNotBlank()) task.description else "Нет описания",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

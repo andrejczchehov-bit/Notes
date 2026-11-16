@@ -84,6 +84,7 @@ fun NotesScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddNote,
+                modifier = Modifier.padding(bottom = 8.dp),
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Добавить заметку")

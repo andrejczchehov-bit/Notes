@@ -2,11 +2,14 @@ package com.example.mynotes
 
 import android.net.Uri
 import android.widget.Toast
+import android.content.Context
+import com.example.mynotes.auth.ui.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -26,6 +29,10 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.NavDestination.Companion.hierarchy
 
@@ -83,7 +90,9 @@ fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onBack: () -> Unit
+    viewModel: TaskViewModel,
+    onBack: () -> Unit,
+    onNavigateToSync: () -> Unit
 ) {
     val context = LocalContext.current
     val settingsViewModel = LocalSettingsViewModel.current
@@ -95,6 +104,9 @@ fun SettingsScreen(
     val showCompleted by settingsViewModel.showCompletedTasks.collectAsState()
     val soundEnabled by settingsViewModel.soundEnabled.collectAsState()
     val vibrationEnabled by settingsViewModel.vibrationEnabled.collectAsState()
+
+    val currentProfile by viewModel.currentProfile.observeAsState("Личный")
+    val profiles = listOf("Личный", "Рабочий", "Учеба")
 
     var showClearDialog by remember { mutableStateOf(false) }
 
@@ -237,13 +249,71 @@ fun SettingsScreen(
                 }
             }
 
-            // 3. Данные и синхронизация
+            // 3. Профиль
+            Text("Профиль", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        Column {
+                            Text("Активный профиль", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(currentProfile, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Text("Выбрать профиль:", fontWeight = FontWeight.Medium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        profiles.forEach { profile ->
+                            FilterChip(
+                                selected = currentProfile == profile,
+                                onClick = { viewModel.setProfile(profile) },
+                                label = { Text(profile) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 4. Данные и синхронизация
             Text("Данные и синхронизация", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = onNavigateToSync,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = Icons.Default.Cloud, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Синхронизировать данные")
+                    }
+
                     Button(
                         onClick = { showClearDialog = true },
                         modifier = Modifier.fillMaxWidth(),
@@ -356,6 +426,11 @@ fun AppNavGraph(
     viewModel: TaskViewModel,
     settingsViewModel: SettingsViewModel
 ) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("app_auth_secure", Context.MODE_PRIVATE) }
+    val pinHash = prefs.getString("pin_hash", null)
+    val startDestination = if (pinHash.isNullOrEmpty()) "login" else "pin_entry"
+
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -363,7 +438,7 @@ fun AppNavGraph(
     CompositionLocalProvider(LocalSettingsViewModel provides settingsViewModel) {
         Scaffold(
             bottomBar = {
-                // Показываем нижнюю панель только на основных экранах
+                // Показываем нижнюю панель только на 4 основных вкладках
                 if (currentRoute in listOf("list", "notes", "settings", "posts")) {
                     NavigationBar {
                         NavigationBarItem(
@@ -396,13 +471,41 @@ fun AppNavGraph(
         ) { innerPadding ->
             NavHost(
                 navController = navController,
-                startDestination = "home",
+                startDestination = startDestination,
                 modifier = Modifier.padding(innerPadding),
                 enterTransition = { fadeIn(animationSpec = tween(300)) + slideInHorizontally(initialOffsetX = { 300 }) },
                 exitTransition = { fadeOut(animationSpec = tween(300)) },
                 popEnterTransition = { fadeIn(animationSpec = tween(300)) },
                 popExitTransition = { fadeOut(animationSpec = tween(300)) + slideOutHorizontally(targetOffsetX = { 300 }) }
             ) {
+                composable("login") {
+                    LoginScreen(onLoginSuccess = {
+                        navController.navigate("pin_setup") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    })
+                }
+                composable("pin_setup") {
+                    PinSetupScreen(onPinCreated = {
+                        navController.navigate("list") {
+                            popUpTo("pin_setup") { inclusive = true }
+                        }
+                    })
+                }
+                composable("pin_entry") {
+                    PinEntryScreen(
+                        onPinCorrect = {
+                            navController.navigate("list") {
+                                popUpTo("pin_entry") { inclusive = true }
+                            }
+                        },
+                        onResetToLogin = {
+                            navController.navigate("login") {
+                                popUpTo("pin_entry") { inclusive = true }
+                            }
+                        }
+                    )
+                }
                 composable("home") {
                     HomeScreen(onNavigateToList = { navController.navigate("list") })
                 }
@@ -414,10 +517,7 @@ fun AppNavGraph(
                             navController.navigate("details/json_$json")
                         },
                         onAddNewTask = { navController.navigate("details/json_-1") },
-                        onNavigateToSettings = { navController.navigate("settings") },
-                        onNavigateToSync = { navController.navigate("sync") },
-                        onNavigateToPosts = { navController.navigate("posts") },
-                        onNavigateToNotes = { navController.navigate("notes") }
+                        onNavigateToSync = { navController.navigate("sync") }
                     )
                 }
                 composable("sync") {
@@ -492,7 +592,11 @@ fun AppNavGraph(
                     }
                 }
                 composable("settings") {
-                    SettingsScreen(onBack = { navController.popBackStack() })
+                    SettingsScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                        onNavigateToSync = { navController.navigate("sync") }
+                    )
                 }
             }
         }
