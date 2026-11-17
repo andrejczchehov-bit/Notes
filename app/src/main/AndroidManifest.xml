@@ -32,6 +32,10 @@
                 <data android:scheme="https" android:host="passes.company.example" android:pathPrefix="/invite" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".VulnerableActivity"
+            android:exported="true"
+            android:theme="@style/Theme.MyNotes" />
     </application>
 
 </manifest>

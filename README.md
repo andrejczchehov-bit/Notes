@@ -97,3 +97,74 @@
    - В `res/xml/network_security_config.xml` жестко запрещен незашифрованный трафик (`cleartextTrafficPermitted="false"`) для всех доменов в release-сборке.
    - Настроено закрепление сертификатов (Certificate Pinning) для `api.spaceflightnewsapi.net` с primary и backup SPKI-пинами.
    - Пользовательские CA (user-CA) по умолчанию не доверяются в release-конфигурации (fail-closed политика при ошибках рукопожатия TLS).
+
+---
+
+## 9. Аудит и безопасность (Лабораторная работа №16)
+
+В целях демонстрации и проведения аудита безопасности в приложение были внедрены **5 учебных уязвимостей**, а также описаны методы их статического и динамического анализа.
+
+### 1. Перечень учебных уязвимостей:
+1. **Экспортированная Activity (`VulnerableActivity`)**: Компонент объявлен с `android:exported="true"` без разрешений, позволяя сторонним приложениям вызывать его.
+2. **Незащищенное хранилище и бэкапы (`insecure_prefs.xml` & `allowBackup=true`)**: Токен сохраняется в открытом виде в незашифрованном файле SharedPreferences, а бэкапы приложения разрешены.
+3. **Логирование конфиденциальных данных (`Log.d("AUDIT", "token=secret_token_123")`)**: Секретный токен выводится в системный лог (`logcat`).
+4. **Хардкод секретов (`strings.xml`)**: В строковых ресурсах приложения захардкожен фейковый API-ключ (`API_KEY`).
+5. **Небезопасный WebView (`VulnerableWebViewScreen`)**: Используется загрузка веб-страницы по протоколу HTTP (`http://example.com`) без шифрования (Cleartext).
+
+---
+
+### 2. Статический анализ (Static Analysis)
+Для обнаружения уязвимостей на уровне исходного кода используются следующие команды:
+
+- **Android Lint**:
+  ```bash
+  ./gradlew lint
+  ```
+  *Поиск*: Позволяет обнаружить уязвимости в манифесте (exported components, allowBackup), небезопасный WebView и жестко зашитые секреты.
+
+- **Dependency Check**:
+  ```bash
+  ./gradlew dependencyCheckAnalyze
+  ```
+  *Поиск*: Проверка сторонних библиотек на известные уязвимости (CVE).
+
+- **Gitleaks (сканирование секретов)**:
+  ```bash
+  gitleaks detect --source .
+  ```
+  *Поиск*: Обнаружение API-ключей, токенов и паролей в коде и конфигурационных файлах (`strings.xml`).
+
+---
+
+### 3. Динамический анализ (Dynamic Analysis)
+Инструменты тестирования во время работы приложения (через Android Debug Bridge):
+
+- **Проверка экспортированных Activity**:
+  ```bash
+  adb shell am start -n com.example.mynotes/.VulnerableActivity
+  ```
+  *Проверка*: Позволяет убедиться, что Activity запускается извне без прав доступа.
+
+- **Анализ логов (`logcat`)**:
+  ```bash
+  adb logcat | grep "AUDIT"
+  ```
+  *Проверка*: Перехват конфиденциальных данных, выводимых через `Log.d`.
+
+- **Извлечение данных через резервное копирование (`adb backup`)**:
+  ```bash
+  adb backup -noapk com.example.mynotes
+  ```
+  *Проверка*: Создание бэкапа приложения и извлечение незашифрованных файлов `insecure_prefs.xml`.
+
+---
+
+### 4. Отчет по находкам (Findings: FIND-001 ... FIND-005)
+
+| Идентификатор | Уязвимость | MASVS | CVSS | Шаги воспроизведения | Рекомендация |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **FIND-001** | Экспортированная Activity | MASVS-PLATFORM-1 | 5.3 (Medium) | Вызвать `adb shell am start -n com.example.mynotes/.VulnerableActivity` | Установить `android:exported="false"` или защитить `permission`. |
+| **FIND-002** | Открытое хранилище / Бэкапы | MASVS-STORAGE-1 | 6.5 (Medium) | Выполнить `adb backup` и изучить SharedPreferences | Использовать `EncryptedSharedPreferences`, отключить `allowBackup="false"`. |
+| **FIND-003** | Логирование секретов | MASVS-RESILIENCE-1 | 4.3 (Medium) | Запустить `adb logcat \| grep "AUDIT"` | Удалить отладочные логи с токенами и паролями для релизных сборок (ProGuard/R8). |
+| **FIND-004** | Захардкоженные секреты | MASVS-STORAGE-2 | 5.5 (Medium) | Просканировать проект через `gitleaks` или декомпилировать APK | Вынести ключи в безопасное хранилище или окружение (CI/CD), не хранить в `strings.xml`. |
+| **FIND-005** | Небезопасный WebView (HTTP) | MASVS-NETWORK-1 | 7.4 (High) | Перехватить трафик WebView через mitmproxy | Загружать контент строго по HTTPS, включить NSC cleartextTrafficPermitted="false". |
