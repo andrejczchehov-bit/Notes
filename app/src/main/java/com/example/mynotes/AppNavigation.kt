@@ -4,6 +4,7 @@ import android.net.Uri
 import android.widget.Toast
 import android.content.Context
 import com.example.mynotes.auth.ui.*
+import com.example.mynotes.auth.data.AuthManager
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
@@ -428,18 +429,20 @@ fun AppNavGraph(
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("app_auth_secure", Context.MODE_PRIVATE) }
-    val pinHash = prefs.getString("pin_hash", null)
-    val startDestination = if (pinHash.isNullOrEmpty()) "login" else "pin_entry"
+    val startDestination = "login"
 
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val isSecurity = remember(currentRoute) { AuthManager.isSecurity(context) || AuthManager.hasScope(context, "scan:execute") }
+    val isAdmin = remember(currentRoute) { AuthManager.isAdmin(context) || AuthManager.hasScope(context, "audit:read") }
+
     CompositionLocalProvider(LocalSettingsViewModel provides settingsViewModel) {
         Scaffold(
             bottomBar = {
-                // Показываем нижнюю панель только на 4 основных вкладках
-                if (currentRoute in listOf("list", "notes", "settings", "posts")) {
+                // Показываем нижнюю панель на основных вкладках и спец-экранах
+                if (currentRoute in listOf("list", "notes", "settings", "posts", "pass", "scan", "admin")) {
                     NavigationBar {
                         NavigationBarItem(
                             selected = currentRoute == "list",
@@ -459,6 +462,28 @@ fun AppNavGraph(
                             icon = { Icon(Icons.Default.Language, contentDescription = "Новости") },
                             label = { Text("Новости") }
                         )
+                        NavigationBarItem(
+                            selected = currentRoute == "pass",
+                            onClick = { navController.navigate("pass") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                            icon = { Icon(Icons.Default.AccountBox, contentDescription = "Пропуск") },
+                            label = { Text("Пропуск") }
+                        )
+                        if (isSecurity) {
+                            NavigationBarItem(
+                                selected = currentRoute == "scan",
+                                onClick = { navController.navigate("scan") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                                icon = { Icon(Icons.Default.CameraAlt, contentDescription = "Сканер") },
+                                label = { Text("Сканер") }
+                            )
+                        }
+                        if (isAdmin) {
+                            NavigationBarItem(
+                                selected = currentRoute == "admin",
+                                onClick = { navController.navigate("admin") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                                icon = { Icon(Icons.Default.Assignment, contentDescription = "Журнал") },
+                                label = { Text("Журнал") }
+                            )
+                        }
                         NavigationBarItem(
                             selected = currentRoute == "settings",
                             onClick = { navController.navigate("settings") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
@@ -481,7 +506,9 @@ fun AppNavGraph(
                 composable("login") {
                     LoginScreen(
                         onLoginSuccess = {
-                            navController.navigate("pin_setup") {
+                            val hasPin = !prefs.getString("pin_hash", null).isNullOrEmpty()
+                            val target = if (hasPin) "pin_entry" else "pin_setup"
+                            navController.navigate(target) {
                                 popUpTo("login") { inclusive = true }
                             }
                         },
@@ -493,7 +520,9 @@ fun AppNavGraph(
                 composable("verify_2fa") {
                     CodeVerificationScreen(
                         onVerificationSuccess = {
-                            navController.navigate("pin_setup") {
+                            val hasPin = !prefs.getString("pin_hash", null).isNullOrEmpty()
+                            val target = if (hasPin) "pin_entry" else "pin_setup"
+                            navController.navigate(target) {
                                 popUpTo("login") { inclusive = true }
                             }
                         },
@@ -522,6 +551,15 @@ fun AppNavGraph(
                             }
                         }
                     )
+                }
+                composable("pass") {
+                    PassScreen(onBack = { navController.popBackStack() })
+                }
+                composable("scan") {
+                    ScanScreen()
+                }
+                composable("admin") {
+                    AdminScreen()
                 }
                 composable("home") {
                     HomeScreen(onNavigateToList = { navController.navigate("list") })

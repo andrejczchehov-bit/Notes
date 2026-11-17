@@ -61,7 +61,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = login,
                 onValueChange = { login = it },
-                label = { Text("Логин (admin или любой другой)") },
+                label = { Text("Логин") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -70,7 +70,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Пароль (1234 для admin)") },
+                label = { Text("Пароль") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation()
