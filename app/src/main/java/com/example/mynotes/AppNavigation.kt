@@ -93,7 +93,8 @@ fun HomeScreen(
 fun SettingsScreen(
     viewModel: TaskViewModel,
     onBack: () -> Unit,
-    onNavigateToSync: () -> Unit
+    onNavigateToSync: () -> Unit,
+    onOpenProfile: () -> Unit
 ) {
     val context = LocalContext.current
     val settingsViewModel = LocalSettingsViewModel.current
@@ -296,6 +297,14 @@ fun SettingsScreen(
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onOpenProfile,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Открыть полный профиль")
+                    }
                 }
             }
 
@@ -435,14 +444,11 @@ fun AppNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val isSecurity = remember(currentRoute) { AuthManager.isSecurity(context) || AuthManager.hasScope(context, "scan:execute") }
-    val isAdmin = remember(currentRoute) { AuthManager.isAdmin(context) || AuthManager.hasScope(context, "audit:read") }
-
     CompositionLocalProvider(LocalSettingsViewModel provides settingsViewModel) {
         Scaffold(
             bottomBar = {
-                // Показываем нижнюю панель на основных вкладках и спец-экранах
-                if (currentRoute in listOf("list", "notes", "settings", "posts", "pass", "scan", "admin")) {
+                // Показываем нижнюю панель только на 4 основных вкладках
+                if (currentRoute in listOf("list", "notes", "settings", "posts")) {
                     NavigationBar {
                         NavigationBarItem(
                             selected = currentRoute == "list",
@@ -462,28 +468,6 @@ fun AppNavGraph(
                             icon = { Icon(Icons.Default.Language, contentDescription = "Новости") },
                             label = { Text("Новости") }
                         )
-                        NavigationBarItem(
-                            selected = currentRoute == "pass",
-                            onClick = { navController.navigate("pass") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
-                            icon = { Icon(Icons.Default.AccountBox, contentDescription = "Пропуск") },
-                            label = { Text("Пропуск") }
-                        )
-                        if (isSecurity) {
-                            NavigationBarItem(
-                                selected = currentRoute == "scan",
-                                onClick = { navController.navigate("scan") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
-                                icon = { Icon(Icons.Default.CameraAlt, contentDescription = "Сканер") },
-                                label = { Text("Сканер") }
-                            )
-                        }
-                        if (isAdmin) {
-                            NavigationBarItem(
-                                selected = currentRoute == "admin",
-                                onClick = { navController.navigate("admin") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
-                                icon = { Icon(Icons.Default.Assignment, contentDescription = "Журнал") },
-                                label = { Text("Журнал") }
-                            )
-                        }
                         NavigationBarItem(
                             selected = currentRoute == "settings",
                             onClick = { navController.navigate("settings") { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true } },
@@ -650,7 +634,14 @@ fun AppNavGraph(
                     SettingsScreen(
                         viewModel = viewModel,
                         onBack = { navController.popBackStack() },
-                        onNavigateToSync = { navController.navigate("sync") }
+                        onNavigateToSync = { navController.navigate("sync") },
+                        onOpenProfile = { navController.navigate("profile") }
+                    )
+                }
+                composable("profile") {
+                    ProfileScreen(
+                        onOpenPass = { navController.navigate("pass") },
+                        onOpenScan = { navController.navigate("scan") }
                     )
                 }
             }

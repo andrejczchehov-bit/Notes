@@ -10,17 +10,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.mynotes.auth.data.AuthManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Обновленный экран профиля (ProfileScreen) по требованиям Лабораторной работы №8.
+ * Обновленный экран профиля (ProfileScreen) по требованиям Лабораторной работы №8 & №14.
  */
 @Composable
 fun ProfileScreen(
@@ -28,8 +30,13 @@ fun ProfileScreen(
     userName: String = "Александр Смирнов",
     userStatus: String = "Android-разработчик • Студент",
     completedCount: Int = 12,
-    inProgressCount: Int = 5
+    inProgressCount: Int = 5,
+    onOpenPass: () -> Unit = {},
+    onOpenScan: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val isSecurity = remember { AuthManager.isSecurity(context) || AuthManager.hasScope(context, "scan:execute") }
+
     var isLoadingSync by remember { mutableStateOf(false) }
     var showSavedMessage by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
@@ -121,6 +128,31 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Доступ к пропуску и сканеру (Лаба 14)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    AppButton(
+                        text = "Открыть пропуск",
+                        onClick = onOpenPass,
+                        style = ButtonStyle.PRIMARY,
+                        size = ButtonSize.MEDIUM,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (isSecurity) {
+                        AppButton(
+                            text = "Открыть сканер",
+                            onClick = onOpenScan,
+                            style = ButtonStyle.SECONDARY,
+                            size = ButtonSize.MEDIUM,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
                 // 5. Группа кнопок с использованием AppButton
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -200,7 +232,7 @@ fun StatCounter(title: String, count: Int) {
 // 8. Превью для светлой и темной темы
 @Preview(name = "Light Theme", showBackground = true)
 @Composable
-fun ProfileScreenLightPreview() {
+fun ProfileScreenLightProfilePreview() {
     AppTheme(themeMode = ThemeMode.LIGHT) {
         ProfileScreen()
     }
@@ -208,7 +240,7 @@ fun ProfileScreenLightPreview() {
 
 @Preview(name = "Dark Theme", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun ProfileScreenDarkPreview() {
+fun ProfileScreenDarkProfilePreview() {
     AppTheme(themeMode = ThemeMode.DARK) {
         ProfileScreen()
     }

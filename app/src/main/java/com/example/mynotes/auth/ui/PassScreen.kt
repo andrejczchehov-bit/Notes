@@ -1,18 +1,21 @@
 package com.example.mynotes.auth.ui
 
-import androidx.compose.foundation.Canvas
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mynotes.auth.data.AuthManager
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,9 +26,20 @@ fun PassScreen(
     val currentUser = remember { AuthManager.getCurrentUserLogin(context) }
     val accessContext = remember { AuthManager.getAccessContext(context) }
 
+    val qrBitmap = remember(currentUser) {
+        generateQRCode("PASS_USER_$currentUser", 200, 200)
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Электронный пропуск") })
+            TopAppBar(
+                title = { Text("Электронный пропуск") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                    }
+                }
+            )
         }
     ) { innerPadding ->
         Column(
@@ -39,7 +53,7 @@ fun PassScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(400.dp),
+                    .height(420.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
@@ -72,32 +86,21 @@ fun PassScreen(
                         }
                     }
 
-                    // QR code placeholder drawn with Canvas
+                    // Real QR code bitmap (200x200 dp)
                     Box(
                         modifier = Modifier
-                            .size(160.dp)
+                            .size(200.dp)
                             .padding(8.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val canvasWidth = size.width
-                            val canvasHeight = size.height
-                            val cellSize = canvasWidth / 8
-                            val black = Color.Black
-                            val white = Color.White
-
-                            drawRect(color = white, size = size)
-                            for (x in 0 until 8) {
-                                for (y in 0 until 8) {
-                                    if ((x + y) % 2 == 0 || x == 0 || y == 0 || x == 7 || y == 7) {
-                                        drawRect(
-                                            color = black,
-                                            topLeft = Offset(x * cellSize, y * cellSize),
-                                            size = Size(cellSize, cellSize)
-                                        )
-                                    }
-                                }
-                            }
+                        if (qrBitmap != null) {
+                            Image(
+                                bitmap = qrBitmap.asImageBitmap(),
+                                contentDescription = "QR код пропуска",
+                                modifier = Modifier.size(200.dp)
+                            )
+                        } else {
+                            CircularProgressIndicator()
                         }
                     }
 
@@ -117,5 +120,21 @@ fun PassScreen(
                 }
             }
         }
+    }
+}
+
+private fun generateQRCode(text: String, width: Int, height: Int): Bitmap? {
+    return try {
+        val writer = QRCodeWriter()
+        val bitMatrix = writer.encode(text, BarcodeFormat.QR_CODE, width, height)
+        val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                bmp.setPixel(x, y, if (bitMatrix.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+            }
+        }
+        bmp
+    } catch (e: Exception) {
+        null
     }
 }

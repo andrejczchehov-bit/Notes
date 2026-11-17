@@ -81,6 +81,8 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     // Kotlinx Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    // ZXing for QR Code generation
+    implementation("com.google.zxing:core:3.5.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
