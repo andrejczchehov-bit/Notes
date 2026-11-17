@@ -120,42 +120,30 @@
   ```bash
   ./gradlew lint
   ```
-  *Поиск*: Позволяет обнаружить уязвимости в манифесте (exported components, allowBackup), небезопасный WebView и жестко зашитые секреты.
-
 - **Dependency Check**:
   ```bash
   ./gradlew dependencyCheckAnalyze
   ```
-  *Поиск*: Проверка сторонних библиотек на известные уязвимости (CVE).
-
 - **Gitleaks (сканирование секретов)**:
   ```bash
   gitleaks detect --source .
   ```
-  *Поиск*: Обнаружение API-ключей, токенов и паролей в коде и конфигурационных файлах (`strings.xml`).
 
 ---
 
 ### 3. Динамический анализ (Dynamic Analysis)
-Инструменты тестирования во время работы приложения (через Android Debug Bridge):
-
 - **Проверка экспортированных Activity**:
   ```bash
   adb shell am start -n com.example.mynotes/.VulnerableActivity
   ```
-  *Проверка*: Позволяет убедиться, что Activity запускается извне без прав доступа.
-
 - **Анализ логов (`logcat`)**:
   ```bash
   adb logcat | grep "AUDIT"
   ```
-  *Проверка*: Перехват конфиденциальных данных, выводимых через `Log.d`.
-
 - **Извлечение данных через резервное копирование (`adb backup`)**:
   ```bash
   adb backup -noapk com.example.mynotes
   ```
-  *Проверка*: Создание бэкапа приложения и извлечение незашифрованных файлов `insecure_prefs.xml`.
 
 ---
 
@@ -168,3 +156,33 @@
 | **FIND-003** | Логирование секретов | MASVS-RESILIENCE-1 | 4.3 (Medium) | Запустить `adb logcat \| grep "AUDIT"` | Удалить отладочные логи с токенами и паролями для релизных сборок (ProGuard/R8). |
 | **FIND-004** | Захардкоженные секреты | MASVS-STORAGE-2 | 5.5 (Medium) | Просканировать проект через `gitleaks` или декомпилировать APK | Вынести ключи в безопасное хранилище или окружение (CI/CD), не хранить в `strings.xml`. |
 | **FIND-005** | Небезопасный WebView (HTTP) | MASVS-NETWORK-1 | 7.4 (High) | Перехватить трафик WebView через mitmproxy | Загружать контент строго по HTTPS, включить NSC cleartextTrafficPermitted="false". |
+
+---
+
+## 10. Hardening и устранение уязвимостей (Лабораторная работа №16)
+
+Все выявленные в ходе аудита уязвимости были успешно устранены:
+
+1. **FIND-001 (Экспортированная Activity)**:
+   - *Исправление*: В `AndroidManifest.xml` для `VulnerableActivity` установлено `android:exported="false"`.
+   - *Проверка*: Попытка запуска через `adb shell am start` теперь вызывает ошибку доступа (`SecurityException`).
+
+2. **FIND-002 (Открытое хранилище / Бэкапы)**:
+   - *Исправление*: В `AndroidManifest.xml` установлено `android:allowBackup="false"`. Удален небезопасный файл `insecure_prefs.xml`.
+   - *Проверка*: Резервное копирование через `adb backup` заблокировано.
+
+3. **FIND-003 (Логирование секретов)**:
+   - *Исправление*: Удалены все отладочные вызовы `Log.d` с токенами из `MainActivity.kt`.
+   - *Проверка*: `adb logcat` больше не содержит утечек конфиденциальных строк.
+
+4. **FIND-004 (Захардкоженные секреты)**:
+   - *Исправление*: Фейковый `API_KEY` полностью удален из `strings.xml`.
+   - *Проверка*: Повторный запуск `gitleaks` и декомпиляция APK не находят зашитых секретов.
+
+5. **FIND-005 (Небезопасный WebView)**:
+   - *Исправление*: Компонент переименован в `SecureWebViewScreen.kt` и переведен на протокол HTTPS (`https://example.com`), JavaScript отключен (`javaScriptEnabled = false`).
+   - *Проверка*: Сетевой мониторинг подтверждает отсутствие незащищенных HTTP-запросов.
+
+### Интеграция R8 и RASP:
+- **R8 / Minification**: В `app/build.gradle.kts` для релизных сборок включены `isMinifyEnabled = true` и `isShrinkResources = true`. В `proguard-rules.pro` добавлены правила сохранения сущностей Room, Retrofit и Gson.
+- **RASP (IntegrityChecks.kt)**: При запуске приложения (`MainActivity`) выполняются базовые проверки на наличие подключенного отладчика (`Debug.isDebuggerConnected()`) и запуск на эмуляторе (анализ `Build.FINGERPRINT`, `MODEL`, `HARDWARE`). При обнаружении срабатывает предупреждающий `Toast`.

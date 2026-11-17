@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mynotes.security.IntegrityChecks
 import com.google.android.material.color.DynamicColors
 
 class MainActivity : ComponentActivity() {
@@ -17,12 +18,8 @@ class MainActivity : ComponentActivity() {
         // Применяем динамические цвета Material 3 для корректной окраски XML-диалогов (DatePicker/TimePicker)
         DynamicColors.applyToActivityIfAvailable(this)
 
-        // Учебная уязвимость №2: Сохранение токена в открытом виде в insecure_prefs.xml
-        val insecurePrefs = getSharedPreferences("insecure_prefs", MODE_PRIVATE)
-        insecurePrefs.edit().putString("auth_token", "cleartext_secret_token_999").apply()
-
-        // Учебная уязвимость №3: Логирование секретного токена
-        android.util.Log.d("AUDIT", "token=secret_token_123")
+        // RASP чеки на запуск
+        IntegrityChecks.performChecks(this)
 
         handleIntent(intent)
 

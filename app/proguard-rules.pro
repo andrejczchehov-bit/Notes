@@ -19,3 +19,15 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Gson & Retrofit
+-keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keep class com.google.gson.** { *; }
+-keep class com.example.mynotes.data.** { *; }
+-keep class com.example.mynotes.Task { *; }
+
+# Room
+-keep class androidx.room.** { *; }
+-dontwarn androidx.room.**
