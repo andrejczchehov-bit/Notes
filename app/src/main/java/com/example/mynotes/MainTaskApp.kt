@@ -25,11 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mynotes.auth.data.AuthManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -45,7 +47,9 @@ fun MainTaskAppScreen(
     viewModel: TaskViewModel,
     onNavigateToDetail: (Task) -> Unit,
     onAddNewTask: () -> Unit,
-    onNavigateToSync: () -> Unit
+    onNavigateToSync: () -> Unit,
+    onNavigateToPass: () -> Unit,
+    onNavigateToScan: () -> Unit
 ) {
     val tasks by viewModel.allTasks.asFlow().collectAsStateWithLifecycle(initialValue = emptyList())
     val currentProfile by viewModel.currentProfile.asFlow().collectAsStateWithLifecycle(initialValue = "Личный")
@@ -254,6 +258,8 @@ fun MainTaskAppScreen(
     if (showProfileDialog) {
         val completedCount = tasks.count { it.isCompleted }
         val inProgressCount = tasks.size - completedCount
+        val context = LocalContext.current
+        val isSecurity = remember { AuthManager.isSecurity(context) || AuthManager.hasScope(context, "scan:execute") }
 
         AlertDialog(
             onDismissRequest = { showProfileDialog = false },
@@ -292,6 +298,32 @@ fun MainTaskAppScreen(
                                 onClick = { viewModel.setProfile(profile) },
                                 label = { Text(profile) }
                             )
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    // Кнопки для Пропуска и Сканера (Лаба 14)
+                    Button(
+                        onClick = {
+                            showProfileDialog = false
+                            onNavigateToPass()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Открыть пропуск")
+                    }
+
+                    if (isSecurity) {
+                        Button(
+                            onClick = {
+                                showProfileDialog = false
+                                onNavigateToScan()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Text("Открыть сканер")
                         }
                     }
 

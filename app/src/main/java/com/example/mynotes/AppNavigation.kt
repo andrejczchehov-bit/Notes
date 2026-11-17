@@ -556,7 +556,9 @@ fun AppNavGraph(
                             navController.navigate("details/json_$json")
                         },
                         onAddNewTask = { navController.navigate("details/json_-1") },
-                        onNavigateToSync = { navController.navigate("sync") }
+                        onNavigateToSync = { navController.navigate("sync") },
+                        onNavigateToPass = { navController.navigate("pass") },
+                        onNavigateToScan = { navController.navigate("scan") }
                     )
                 }
                 composable("sync") {

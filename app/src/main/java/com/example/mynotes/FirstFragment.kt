@@ -30,7 +30,9 @@ class FirstFragment : Fragment() {
                             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment, bundle)
                         },
                         onAddNewTask = {},
-                        onNavigateToSync = {}
+                        onNavigateToSync = {},
+                        onNavigateToPass = {},
+                        onNavigateToScan = {}
                     )
                 }
             }
