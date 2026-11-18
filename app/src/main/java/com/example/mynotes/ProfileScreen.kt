@@ -39,7 +39,7 @@ fun ProfileScreen(
     val userRoleText = when {
         isAdmin -> "Администратор"
         isSecurity -> "Служба безопасности"
-        else -> "Сотрудник"
+        else -> "Пользователь"
     }
 
     var isLoadingSync by remember { mutableStateOf(false) }
