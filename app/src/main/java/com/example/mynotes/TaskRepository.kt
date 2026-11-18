@@ -8,7 +8,7 @@ interface ITaskRepository {
     suspend fun update(task: Task)
     suspend fun delete(task: Task)
     suspend fun getTaskById(id: Long): Task?
-    suspend fun getAllTasksList(): List<Task>
+    suspend fun getAllTasksList(ownerLogin: String): List<Task>
     suspend fun deleteCompletedTasks()
 }
 
@@ -33,8 +33,8 @@ class TaskRepository(private val taskDao: TaskDao) : ITaskRepository {
         return taskDao.getTaskById(id)
     }
 
-    override suspend fun getAllTasksList(): List<Task> {
-        return taskDao.getAllTasksList()
+    override suspend fun getAllTasksList(ownerLogin: String): List<Task> {
+        return taskDao.getAllTasksList(ownerLogin)
     }
 
     override suspend fun deleteCompletedTasks() {

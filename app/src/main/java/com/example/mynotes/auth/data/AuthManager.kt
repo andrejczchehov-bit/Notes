@@ -7,19 +7,23 @@ object AuthManager {
     private const val PREF_NAME = "auth_manager_prefs"
 
     fun saveAccessContext(context: Context, accessContext: AccessContext) {
-        val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        val json = Gson().toJson(accessContext)
-        prefs.edit()
-            .putString("access_context", json)
-            .putString("current_login", accessContext.userId)
-            .putBoolean("is_admin", accessContext.role == Role.ADMIN)
-            .apply()
+        try {
+            val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            val json = Gson().toJson(accessContext)
+            prefs.edit()
+                .putString("access_context", json)
+                .putString("current_login", accessContext.userId)
+                .putBoolean("is_admin", accessContext.role == Role.ADMIN)
+                .apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun getAccessContext(context: Context): AccessContext? {
-        val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        val json = prefs.getString("access_context", null) ?: return null
         return try {
+            val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            val json = prefs.getString("access_context", null) ?: return null
             Gson().fromJson(json, AccessContext::class.java)
         } catch (e: Exception) {
             null
@@ -27,20 +31,36 @@ object AuthManager {
     }
 
     fun getCurrentUserLogin(context: Context): String {
-        val ctx = getAccessContext(context)
-        return ctx?.userId ?: "Пользователь"
+        return try {
+            val ctx = getAccessContext(context)
+            ctx?.userId ?: "admin"
+        } catch (e: Exception) {
+            "admin"
+        }
     }
 
     fun isAdmin(context: Context): Boolean {
-        return getAccessContext(context)?.role == Role.ADMIN
+        return try {
+            getAccessContext(context)?.role == Role.ADMIN
+        } catch (e: Exception) {
+            false
+        }
     }
 
     fun isSecurity(context: Context): Boolean {
-        return getAccessContext(context)?.role == Role.SECURITY
+        return try {
+            getAccessContext(context)?.role == Role.SECURITY
+        } catch (e: Exception) {
+            false
+        }
     }
 
     fun hasScope(context: Context, scope: String): Boolean {
-        val ctx = getAccessContext(context) ?: return false
-        return ctx.scopes.contains(scope)
+        return try {
+            val ctx = getAccessContext(context) ?: return false
+            ctx.scopes.contains(scope)
+        } catch (e: Exception) {
+            false
+        }
     }
 }

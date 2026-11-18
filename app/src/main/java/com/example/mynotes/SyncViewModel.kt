@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.mynotes.auth.data.AuthManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +41,7 @@ class SyncViewModel(
             override suspend fun update(task: Task) {}
             override suspend fun delete(task: Task) {}
             override suspend fun getTaskById(id: Long): Task? = null
-            override suspend fun getAllTasksList(): List<Task> = emptyList()
+            override suspend fun getAllTasksList(ownerLogin: String): List<Task> = emptyList()
             override suspend fun deleteCompletedTasks() {}
         }
     }
@@ -111,8 +112,9 @@ class SyncViewModel(
                 retryCount = 0
                 val tasks = try {
                     println("SyncViewModel: fetching tasks from repository...")
-                    val fetched = repository.getAllTasksList()
-                    println("SyncViewModel: successfully fetched ${fetched.size} tasks")
+                    val ownerLogin = AuthManager.getCurrentUserLogin(getApplication())
+                    val fetched = repository.getAllTasksList(ownerLogin)
+                    println("SyncViewModel: successfully fetched ${fetched.size} tasks for user $ownerLogin")
                     fetched
                 } catch (e: Exception) {
                     println("SyncViewModel: error fetching tasks: ${e.message}")

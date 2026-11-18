@@ -11,7 +11,6 @@ import kotlinx.coroutines.launch
 
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: TaskRepository
-    private val ownerLogin = AuthManager.getCurrentUserLogin(application)
 
     private val _currentProfile = MutableLiveData("Личный")
     val currentProfile: LiveData<String> get() = _currentProfile
@@ -22,8 +21,9 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         val taskDao = AppDatabase.getDatabase(application).taskDao()
         repository = TaskRepository(taskDao)
 
-        // switchMap будет перезапрашивать данные при смене профиля для текущего пользователя
+        // Динамически получаем текущего пользователя из AuthManager при каждом запросе задач
         allTasks = _currentProfile.switchMap { profile ->
+            val ownerLogin = AuthManager.getCurrentUserLogin(application)
             repository.getTasksByProfile(profile, ownerLogin)
         }
     }
@@ -36,6 +36,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     fun insert(task: Task) {
         val profile = _currentProfile.value ?: "Личный"
+        val ownerLogin = AuthManager.getCurrentUserLogin(getApplication())
         val taskWithProfile = task.copy(profileName = profile, ownerLogin = ownerLogin)
 
         println("DEBUG_PROFILE: Сохраняем задачу '${task.title}' с профилем: $profile для пользователя: $ownerLogin")
@@ -54,6 +55,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun persist() {
+        val ownerLogin = AuthManager.getCurrentUserLogin(getApplication())
         android.util.Log.d("TaskViewModel", "Auto-saving tasks state / persisting data for user $ownerLogin...")
     }
 }

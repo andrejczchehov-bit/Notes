@@ -25,7 +25,7 @@ class FakeTaskRepository : ITaskRepository {
     override suspend fun update(task: Task) {}
     override suspend fun delete(task: Task) {}
     override suspend fun getTaskById(id: Long): Task? = tasksToReturn.find { it.id == id }
-    override suspend fun getAllTasksList(): List<Task> = tasksToReturn
+    override suspend fun getAllTasksList(ownerLogin: String): List<Task> = tasksToReturn
     override suspend fun deleteCompletedTasks() {}
 }
 

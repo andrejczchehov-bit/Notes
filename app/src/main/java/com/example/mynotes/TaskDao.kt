@@ -20,8 +20,8 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun getTaskById(id: Long): Task?
 
-    @Query("SELECT * FROM tasks ORDER BY priority DESC, dueDate ASC")
-    suspend fun getAllTasksList(): List<Task>
+    @Query("SELECT * FROM tasks WHERE ownerLogin = :ownerLogin ORDER BY priority DESC, dueDate ASC")
+    suspend fun getAllTasksList(ownerLogin: String): List<Task>
 
     @Query("DELETE FROM tasks WHERE isCompleted = 1")
     suspend fun deleteCompletedTasks()
