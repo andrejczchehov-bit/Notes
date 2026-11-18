@@ -17,5 +17,6 @@ data class Task(
     val priority: Int, // 1: Low, 2: Medium, 3: High
     val isCompleted: Boolean = false,
     val reminderTime: Long = 0L,
-    val profileName: String = "Личный"
+    val profileName: String = "Личный",
+    val ownerLogin: String = "admin"
 )

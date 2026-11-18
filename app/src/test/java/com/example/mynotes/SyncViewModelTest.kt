@@ -20,7 +20,7 @@ class FakeTaskRepository : ITaskRepository {
         Task(id = 2, title = "Test Task 2", description = "Desc 2", dueDate = System.currentTimeMillis(), priority = 3)
     )
 
-    override fun getTasksByProfile(profileName: String): LiveData<List<Task>> = MutableLiveData(tasksToReturn)
+    override fun getTasksByProfile(profileName: String, ownerLogin: String): LiveData<List<Task>> = MutableLiveData(tasksToReturn)
     override suspend fun insert(task: Task): Long = 1L
     override suspend fun update(task: Task) {}
     override suspend fun delete(task: Task) {}

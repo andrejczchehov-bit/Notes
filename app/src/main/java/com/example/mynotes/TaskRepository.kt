@@ -3,7 +3,7 @@ package com.example.mynotes
 import androidx.lifecycle.LiveData
 
 interface ITaskRepository {
-    fun getTasksByProfile(profileName: String): LiveData<List<Task>>
+    fun getTasksByProfile(profileName: String, ownerLogin: String): LiveData<List<Task>>
     suspend fun insert(task: Task): Long
     suspend fun update(task: Task)
     suspend fun delete(task: Task)
@@ -13,8 +13,8 @@ interface ITaskRepository {
 }
 
 class TaskRepository(private val taskDao: TaskDao) : ITaskRepository {
-    override fun getTasksByProfile(profileName: String): LiveData<List<Task>> {
-        return taskDao.getTasksByProfile(profileName)
+    override fun getTasksByProfile(profileName: String, ownerLogin: String): LiveData<List<Task>> {
+        return taskDao.getTasksByProfile(profileName, ownerLogin)
     }
 
     override suspend fun insert(task: Task): Long {

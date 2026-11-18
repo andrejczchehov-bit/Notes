@@ -5,8 +5,8 @@ import androidx.room.*
 
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM tasks WHERE profileName = :profileName ORDER BY priority DESC, dueDate ASC")
-    fun getTasksByProfile(profileName: String): LiveData<List<Task>>
+    @Query("SELECT * FROM tasks WHERE profileName = :profileName AND ownerLogin = :ownerLogin ORDER BY priority DESC, dueDate ASC")
+    fun getTasksByProfile(profileName: String, ownerLogin: String): LiveData<List<Task>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(task: Task): Long

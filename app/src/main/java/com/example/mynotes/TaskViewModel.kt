@@ -6,10 +6,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
+import com.example.mynotes.auth.data.AuthManager
 import kotlinx.coroutines.launch
 
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: TaskRepository
+    private val ownerLogin = AuthManager.getCurrentUserLogin(application)
 
     private val _currentProfile = MutableLiveData("Личный")
     val currentProfile: LiveData<String> get() = _currentProfile
@@ -20,9 +22,9 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         val taskDao = AppDatabase.getDatabase(application).taskDao()
         repository = TaskRepository(taskDao)
 
-        // Вот тут switchMap будет перезапрашивать данные при смене профиля
+        // switchMap будет перезапрашивать данные при смене профиля для текущего пользователя
         allTasks = _currentProfile.switchMap { profile ->
-            repository.getTasksByProfile(profile)
+            repository.getTasksByProfile(profile, ownerLogin)
         }
     }
 
@@ -34,9 +36,9 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     fun insert(task: Task) {
         val profile = _currentProfile.value ?: "Личный"
-        val taskWithProfile = task.copy(profileName = profile)
+        val taskWithProfile = task.copy(profileName = profile, ownerLogin = ownerLogin)
 
-        println("DEBUG_PROFILE: Сохраняем задачу '${task.title}' с профилем: $profile")
+        println("DEBUG_PROFILE: Сохраняем задачу '${task.title}' с профилем: $profile для пользователя: $ownerLogin")
 
         viewModelScope.launch {
             repository.insert(taskWithProfile)
@@ -52,6 +54,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun persist() {
-        android.util.Log.d("TaskViewModel", "Auto-saving tasks state / persisting data...")
+        android.util.Log.d("TaskViewModel", "Auto-saving tasks state / persisting data for user $ownerLogin...")
     }
 }
