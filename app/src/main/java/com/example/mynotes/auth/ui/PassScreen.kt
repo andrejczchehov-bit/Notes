@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mynotes.auth.data.AuthManager
+import com.example.mynotes.auth.data.Role
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 
@@ -25,6 +26,12 @@ fun PassScreen(
     val context = LocalContext.current
     val currentUser = remember { AuthManager.getCurrentUserLogin(context) }
     val accessContext = remember { AuthManager.getAccessContext(context) }
+
+    val roleText = when (accessContext?.role) {
+        Role.ADMIN -> "Администратор"
+        Role.SECURITY -> "Служба безопасности"
+        else -> "Пользователь"
+    }
 
     val qrBitmap = remember(currentUser) {
         generateQRCode("PASS_USER_$currentUser", 200, 200)
@@ -112,7 +119,7 @@ fun PassScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Роль: ${accessContext?.role?.name ?: "EMPLOYEE"}",
+                            text = "Роль: $roleText",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -31,42 +31,26 @@ class AuthRepository(context: Context) {
             return AuthResult.AuthLocked(secondsRemaining, "Вход заблокирован. Повторите попытку через $secondsRemaining сек.")
         }
 
-        val trimmedLogin = login.trim().lowercase()
-
-        if (trimmedLogin == "admin" && pass == "1234") {
-            prefs.edit().putInt("failed_attempts", 0).remove("lock_until").apply()
-            
-            val contextObj = AccessContext(
-                userId = "admin",
-                role = Role.ADMIN,
-                scopes = setOf("pass:view", "scan:execute", "audit:read")
-            )
-            AuthManager.saveAccessContext(appContext, contextObj)
-
-            AuthAudit.logEvent(appContext, "LOGIN_OK", "Успешный вход администратора: admin")
-            return AuthResult.Success("access_token_mock_123", "refresh_token_mock_789")
-        } else {
-            val code = (100000..999999).random().toString()
-            prefs.edit().putString("pending_2fa_code", code).putString("pending_2fa_login", login).apply()
-            NotificationHelper.sendTwoFactorCodeNotification(appContext, code)
-            AuthAudit.logEvent(appContext, "2FA_SENT", "Отправлен код подтверждения для $login")
-            return AuthResult.RequiresTwoFactor(login)
-        }
+        // Для ВСЕХ пользователей (включая admin) теперь требуется 2FA
+        val code = (100000..999999).random().toString()
+        prefs.edit().putString("pending_2fa_code", code).putString("pending_2fa_login", login).apply()
+        NotificationHelper.sendTwoFactorCodeNotification(appContext, code)
+        AuthAudit.logEvent(appContext, "2FA_SENT", "Отправлен код подтверждения для $login")
+        return AuthResult.RequiresTwoFactor(login)
     }
 
     fun verifyTwoFactorCode(inputCode: String): AuthResult {
         val savedCode = prefs.getString("pending_2fa_code", null)
         val savedLogin = prefs.getString("pending_2fa_login", "Пользователь") ?: "Пользователь"
-        
+
         if (savedCode != null && savedCode == inputCode.trim()) {
             prefs.edit().remove("pending_2fa_code").remove("pending_2fa_login").putInt("failed_attempts", 0).remove("lock_until").apply()
-            
+
             val trimmed = savedLogin.trim().lowercase()
-            val role = if (trimmed == "guard") Role.SECURITY else Role.EMPLOYEE
-            val scopes = if (trimmed == "guard") {
-                setOf("pass:view", "scan:execute")
-            } else {
-                setOf("pass:view")
+            val (role, scopes) = when (trimmed) {
+                "admin" -> Role.ADMIN to setOf("pass:view", "scan:execute", "audit:read")
+                "guard" -> Role.SECURITY to setOf("pass:view", "scan:execute")
+                else -> Role.EMPLOYEE to setOf("pass:view")
             }
 
             val contextObj = AccessContext(
