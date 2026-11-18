@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,15 +26,21 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
-    userName: String = "Александр Смирнов",
-    userStatus: String = "Android-разработчик • Студент",
     completedCount: Int = 12,
     inProgressCount: Int = 5,
     onOpenPass: () -> Unit = {},
     onOpenScan: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val currentLogin = remember { AuthManager.getCurrentUserLogin(context).ifBlank { "Гость" } }
+    val isAdmin = remember { AuthManager.isAdmin(context) }
     val isSecurity = remember { AuthManager.isSecurity(context) || AuthManager.hasScope(context, "scan:execute") }
+
+    val userRoleText = when {
+        isAdmin -> "Администратор"
+        isSecurity -> "Служба безопасности"
+        else -> "Сотрудник"
+    }
 
     var isLoadingSync by remember { mutableStateOf(false) }
     var showSavedMessage by remember { mutableStateOf(false) }
@@ -62,10 +67,10 @@ fun ProfileScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
 
-                // 3. Использование ProfileCard (иконка Person, имя, статус, иконка Edit в trailingContent)
+                // 3. Использование ProfileCard (иконка Person, динамическое имя и роль без иконки редактирования)
                 ProfileCard(
-                    title = userName,
-                    subtitle = userStatus,
+                    title = currentLogin,
+                    subtitle = userRoleText,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Person,
@@ -73,16 +78,8 @@ fun ProfileScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
-                    trailingContent = {
-                        IconButton(onClick = {}) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Редактировать",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    onClick = {}
+                    trailingContent = null,
+                    onClick = null
                 )
 
                 // 4. Блок «Статистика» (2-3 строки текста, стиль bodyLarge)
